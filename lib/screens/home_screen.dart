@@ -214,7 +214,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            Expanded(
+            SizedBox(
+              height: 200,
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
@@ -415,20 +416,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ],
           ),
         ),
-        if (isCompleted)
-           IconButton(
-             icon: const Icon(Icons.undo, size: 24),
-             onPressed: () {
-               ref.read(goalProvider.notifier).unmarkActionComplete(log.id);
-             },
-           ),
         Checkbox(
           value: isCompleted,
           onChanged: (val) {
             if (val == true) {
               ref.read(goalProvider.notifier).markActionComplete(log.id);
+            } else {
+              ref.read(goalProvider.notifier).unmarkActionComplete(log.id);
             }
           },
+        ),
+        _buildGoalOptionsMenu(context, goal),
+      ],
+    );
+  }
+
+  Widget _buildGoalOptionsMenu(BuildContext context, Goal goal) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert, size: 20),
+      onSelected: (value) async {
+        if (value == 'edit') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddGoalScreen(goalToEdit: goal)),
+          );
+        } else if (value == 'delete') {
+          await _showDeleteConfirmDialog(context, goal);
+        }
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Icons.edit, size: 18),
+              SizedBox(width: 8),
+              Text('Edit'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete, color: Theme.of(context).colorScheme.error, size: 18),
+              SizedBox(width: 8),
+              Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ],
+          ),
         ),
       ],
     );
@@ -457,12 +492,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             if (isFailed)
-               IconButton(
-                 icon: const Icon(Icons.undo, size: 20),
-                 onPressed: () {
-                   ref.read(goalProvider.notifier).unmarkActionComplete(log.id);
-                 },
-               )
+              TextButton.icon(
+                onPressed: () {
+                  ref.read(goalProvider.notifier).unmarkActionComplete(log.id);
+                },
+                icon: const Icon(Icons.undo, size: 18),
+                label: const Text("Reset"),
+                style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+              )
             else if (isPending)
               OutlinedButton(
                 onPressed: () {
@@ -470,9 +507,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 },
                 child: const Text("Mark Fail"),
               ),
+            _buildGoalOptionsMenu(context, goal),
           ],
         ),
-        const Spacer(),
+        const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [

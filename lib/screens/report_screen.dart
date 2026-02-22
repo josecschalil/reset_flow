@@ -155,8 +155,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              Expanded(
-                child: SingleChildScrollView(
+              SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   reverse: true,
                   child: Row(
@@ -164,7 +163,6 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                     children: columns.map((col) => Padding(padding: const EdgeInsets.only(right: 6), child: col)).toList(),
                   ),
                 ),
-              ),
             ],
           ),
         ),
