@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:glassmorphism/glassmorphism.dart';
 import 'package:reset_flow/providers/goal_provider.dart';
 import 'package:reset_flow/theme/app_theme.dart';
 import 'package:intl/intl.dart';
@@ -18,14 +17,13 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     final goalState = ref.watch(goalProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: const Text('Advanced Report', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: goalState.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.accentColor))
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -35,7 +33,6 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                       "Consistency Dashboard",
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
                           ),
                     ),
                     const SizedBox(height: 16),
@@ -52,34 +49,23 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
     return Row(
       children: [
-        Expanded(child: _buildGlassCard("Total Completed", "$totalCompleted", AppTheme.successColor)),
-        const SizedBox(width: 16),
-        Expanded(child: _buildGlassCard("Missed/Failed", "$totalFailed", AppTheme.dangerColor)),
+        Expanded(child: _buildSummaryCard("Completed", "$totalCompleted", Colors.green)),
+        const SizedBox(width: 12),
+        Expanded(child: _buildSummaryCard("Missed/Failed", "$totalFailed", Theme.of(context).colorScheme.error)),
       ],
     );
   }
 
-  Widget _buildGlassCard(String title, String value, Color accentInfo) {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: AppTheme.glassShadows(),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: GlassmorphicContainer(
-        width: double.infinity,
-        height: 120,
-        borderRadius: 24,
-        blur: 20,
-        alignment: Alignment.center,
-        border: 1.5,
-        linearGradient: AppTheme.glassLinearGradient(),
-        borderGradient: AppTheme.glassBorderGradient(),
+  Widget _buildSummaryCard(String title, String value, Color accentColor) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(value, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: accentInfo)),
+            Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: accentColor)),
             const SizedBox(height: 4),
-            Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+            Text(title, style: const TextStyle(fontSize: 12)),
           ],
         ),
       ),
@@ -109,11 +95,11 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
        final dayStr = formatter.format(day);
        
        final density = dailyDensity[dayStr] ?? 0;
-       Color cellColor = AppTheme.textSecondary.withOpacity(0.1); // No activity
+       Color cellColor = Theme.of(context).colorScheme.surfaceVariant;
 
-       if (density > 0 && density <= 2) cellColor = AppTheme.successColor.withOpacity(0.3);
-       if (density > 2 && density <= 4) cellColor = AppTheme.successColor.withOpacity(0.6);
-       if (density > 4) cellColor = AppTheme.successColor;
+       if (density > 0 && density <= 2) cellColor = Colors.green.withOpacity(0.3);
+       if (density > 2 && density <= 4) cellColor = Colors.green.withOpacity(0.6);
+       if (density > 4) cellColor = Colors.green;
 
        currentColumn.add(
          Container(
@@ -145,38 +131,25 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   }
 
   Widget _buildHeatMap(List<Widget> columns) {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: AppTheme.glassShadows(),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: GlassmorphicContainer(
-        width: double.infinity,
-        height: 250,
-        borderRadius: 24,
-        blur: 20,
-        alignment: Alignment.center,
-        border: 1.5,
-        linearGradient: AppTheme.glassLinearGradient(),
-        borderGradient: AppTheme.glassBorderGradient(),
+    return Card(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Last 3 Months", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+                  const Text("Last 3 Months", style: TextStyle(fontWeight: FontWeight.bold)),
                   Row(
                     children: [
-                      const Text("Less", style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                      const Text("Less", style: TextStyle(fontSize: 10)),
                       const SizedBox(width: 4),
-                      _legendBox(AppTheme.textSecondary.withOpacity(0.1)),
-                      _legendBox(AppTheme.successColor.withOpacity(0.3)),
-                      _legendBox(AppTheme.successColor.withOpacity(0.6)),
-                      _legendBox(AppTheme.successColor),
+                      _legendBox(Theme.of(context).colorScheme.surfaceVariant),
+                      _legendBox(Colors.green.withOpacity(0.3)),
+                      _legendBox(Colors.green.withOpacity(0.6)),
+                      _legendBox(Colors.green),
                       const SizedBox(width: 4),
-                      const Text("More", style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                      const Text("More", style: TextStyle(fontSize: 10)),
                     ],
                   )
                 ],
@@ -195,7 +168,6 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             ],
           ),
         ),
-      ),
     );
   }
 

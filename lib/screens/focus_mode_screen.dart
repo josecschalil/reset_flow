@@ -1,6 +1,7 @@
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:glassmorphism/glassmorphism.dart';
+import 'package:flutter/services.dart';
 import 'package:reset_flow/theme/app_theme.dart';
 
 class FocusModeScreen extends StatefulWidget {
@@ -68,18 +69,15 @@ class _FocusModeScreenState extends State<FocusModeScreen> with TickerProviderSt
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: AppTheme.backgroundLight,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Focus Session Complete 🎯', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-          content: const Text('Great work locking in. Take a 5 minute break before your next session.', style: TextStyle(color: AppTheme.textSecondary)),
+          title: const Text('Focus Session Complete 🎯'),
+          content: const Text('Great work locking in. Take a 5 minute break before your next session.'),
           actions: [
-            ElevatedButton(
-               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor),
+            TextButton(
                onPressed: () {
                  Navigator.pop(context);
                  _resetTimer();
                },
-               child: const Text('Reset Timer', style: TextStyle(color: Colors.white)),
+               child: const Text('Reset Timer'),
             ),
           ],
         ),
@@ -95,126 +93,42 @@ class _FocusModeScreenState extends State<FocusModeScreen> with TickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
-        title: const Text('Deep Focus', style: TextStyle(fontWeight: FontWeight.bold)),
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: AppTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: const Text('Deep Focus'),
       ),
-      body: Stack(
-        children: [
-          // Subtly animated background glow
-          AnimatedBuilder(
-            animation: _pulseController,
-            builder: (context, child) {
-              return Positioned(
-                top: MediaQuery.of(context).size.height * 0.2,
-                left: MediaQuery.of(context).size.width * 0.1 - (_pulseController.value * 20),
-                child: Container(
-                  width: 300 + (_pulseController.value * 50),
-                  height: 300 + (_pulseController.value * 50),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _isActive 
-                        ? AppTheme.accentColor.withOpacity(0.1 - (_pulseController.value * 0.05))
-                        : AppTheme.accentColor.withOpacity(0.05),
-                    boxShadow: [
-                      BoxShadow(color: AppTheme.accentColor.withOpacity(0.1), blurRadius: 100, spreadRadius: 50),
-                    ],
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _formattedTime,
+              style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: _isActive ? Theme.of(context).colorScheme.primary : null,
                   ),
-                ),
-              );
-            },
-          ),
-          SafeArea(
-            child: Column(
+            ),
+            const SizedBox(height: 48),
+            Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Spacer(),
-                const Text(
-                  "Put down your phone.\nStay focused on your task.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 60),
-                Container(
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.accentColor.withOpacity(0.1),
-                        blurRadius: 40,
-                        spreadRadius: 10,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                    borderRadius: BorderRadius.circular(150),
+                if (!_isActive && _secondsRemaining != 1500)
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 32),
+                    onPressed: _resetTimer,
                   ),
-                  child: GlassmorphicContainer(
-                    width: 300,
-                    height: 300,
-                    borderRadius: 150,
-                    blur: 25,
-                    alignment: Alignment.center,
-                    border: 1.5,
-                    linearGradient: AppTheme.glassLinearGradient(),
-                    borderGradient: AppTheme.glassBorderGradient(),
-                    child: Center(
-                      child: Text(
-                        _formattedTime,
-                        style: TextStyle(
-                          fontSize: 72,
-                          fontWeight: FontWeight.w900,
-                          height: 1.0,
-                          color: _isActive ? AppTheme.accentColor : AppTheme.textPrimary,
-                          letterSpacing: -2,
-                        ),
-                      ),
-                    ),
+                if (!_isActive && _secondsRemaining != 1500)
+                   const SizedBox(width: 16),
+                FilledButton.tonal(
+                  onPressed: _toggleTimer,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    child: Icon(_isActive ? Icons.pause : Icons.play_arrow, size: 32),
                   ),
                 ),
-                const SizedBox(height: 60),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (!_isActive && _secondsRemaining != 1500)
-                      GestureDetector(
-                        onTap: _resetTimer,
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.textSecondary.withOpacity(0.1)),
-                          child: const Icon(Icons.refresh, color: AppTheme.textPrimary, size: 32),
-                        ),
-                      ),
-                    if (!_isActive && _secondsRemaining != 1500)
-                       const SizedBox(width: 24),
-                    GestureDetector(
-                      onTap: _toggleTimer,
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _isActive ? AppTheme.cardColor : AppTheme.accentColor,
-                          border: _isActive ? Border.all(color: AppTheme.accentColor, width: 2) : null,
-                          boxShadow: !_isActive ? [BoxShadow(color: AppTheme.accentColor.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))] : [],
-                        ),
-                        child: Icon(
-                          _isActive ? Icons.pause : Icons.play_arrow,
-                          color: _isActive ? AppTheme.accentColor : Colors.white,
-                          size: 48,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:glassmorphism/glassmorphism.dart';
 import 'package:reset_flow/providers/goal_provider.dart';
 import 'package:reset_flow/theme/app_theme.dart';
 import 'package:reset_flow/screens/add_goal_screen.dart';
@@ -8,6 +7,9 @@ import 'package:reset_flow/screens/focus_mode_screen.dart';
 import 'package:reset_flow/models/goal.dart';
 import 'package:reset_flow/models/daily_log.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:reset_flow/utils/quotes.dart';
 import 'package:reset_flow/utils/streak_calculator.dart';
 
@@ -28,44 +30,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     int totalToday = goalState.todayLogs.length;
     double successRate = totalToday == 0 ? 0 : (completedToday / totalToday) * 100;
 
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
-      body: Stack(
-        children: [
-          // Background Gradient Orbs (Light Mode)
-          Positioned(
-            top: -100,
-            left: -100,
-            child: Container(
-              width: 350,
-              height: 350,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.accentColor.withOpacity(0.15),
-                boxShadow: [
-                  BoxShadow(color: AppTheme.accentColor.withOpacity(0.15), blurRadius: 100, spreadRadius: 50),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -50,
-            right: -50,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.accentSecondary.withOpacity(0.1),
-                boxShadow: [
-                  BoxShadow(color: AppTheme.accentSecondary.withOpacity(0.1), blurRadius: 100, spreadRadius: 50),
-                ],
-              ),
-            ),
-          ),
-          SafeArea(
+      body: SafeArea(
             child: goalState.isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.accentColor))
+                ? const Center(child: CircularProgressIndicator())
                 : CustomScrollView(
                     slivers: [
                       SliverPadding(
@@ -80,7 +50,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               "Today's Goals",
                               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: AppTheme.textPrimary,
                                   ),
                             ),
                             const SizedBox(height: 16),
@@ -90,11 +59,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       goalState.todayLogs.isEmpty
                           ? SliverFillRemaining(
                               hasScrollBody: false,
-                              child: Center(
-                                child: Text(
-                                  "No goals for today.\nTap + to create one!",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+                                child: Center(
+                                  child: Card(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 36,
+                                          backgroundColor: colorScheme.primaryContainer,
+                                          child: Icon(Icons.auto_awesome, color: colorScheme.primary, size: 40),
+                                        ),
+                                        const SizedBox(height: 20),
+                                        const Text(
+                                          "No Goals Yet",
+                                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        const Text(
+                                          "Tap the + button to start building momentum.",
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(fontSize: 14),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
                             )
@@ -114,7 +104,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         createdAt: DateTime.now(),
                                       ),
                                     );
-                                    return _buildGoalCard(context, goal, log);
+                                    return AnimationConfiguration.staggeredList(
+                                      position: index,
+                                      duration: const Duration(milliseconds: 375),
+                                      child: SlideAnimation(
+                                        verticalOffset: 50.0,
+                                        child: FadeInAnimation(
+                                          child: _buildGoalCard(context, goal, log),
+                                        ),
+                                      ),
+                                    );
                                   },
                                   childCount: goalState.todayLogs.length,
                                 ),
@@ -123,12 +122,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       const SliverToBoxAdapter(child: SizedBox(height: 100)), // Bottom padding for FAB
                     ],
                   ),
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.accentColor,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add),
         onPressed: () {
           Navigator.push(
             context,
@@ -152,25 +148,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Text(
                   "ResetFlow",
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: AppTheme.textPrimary,
-                        letterSpacing: -1,
+                        fontWeight: FontWeight.bold,
                       ),
                 ),
                 const SizedBox(height: 4),
-                Text(
+                const Text(
                   "Beat Procrastination",
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
                 ),
               ],
             ),
             IconButton(
-               icon: const Icon(Icons.center_focus_strong, size: 28, color: AppTheme.accentSecondary),
+               icon: const Icon(Icons.timer_outlined, size: 28),
                tooltip: 'Deep Focus Mode',
                onPressed: () {
+                 HapticFeedback.lightImpact();
                  Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const FocusModeScreen()),
@@ -180,29 +171,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
         const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.accentColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.accentColor.withOpacity(0.3)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.format_quote, color: AppTheme.accentColor, size: 20),
-                  SizedBox(width: 8),
-                  Text("DAILY MINDSET", style: TextStyle(color: AppTheme.accentColor, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                DailyQuotes.todaysQuote,
-                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600, height: 1.4),
-              ),
-            ],
+        Card(
+          color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.format_quote, color: Theme.of(context).colorScheme.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Text("DAILY MINDSET", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  DailyQuotes.todaysQuote,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -210,33 +199,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildAnalyticsDashboard(int successRate, int completed, int failed, GoalState state) {
-    return GlassmorphicContainer(
-      width: double.infinity,
-      height: 240, // Expanded for chart + summary
-      borderRadius: 24,
-      blur: 25,
-      alignment: Alignment.center,
-      border: 1.5,
-      linearGradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [AppTheme.cardColor.withOpacity(0.8), AppTheme.cardColor.withOpacity(0.4)],
-      ),
-      borderGradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Colors.white.withOpacity(0.8), Colors.white.withOpacity(0.1)],
-      ),
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildStatItem("Success", "$successRate%", AppTheme.accentColor),
-                _buildStatItem("Completed", "$completed", AppTheme.successColor),
-                _buildStatItem("Missed", "$failed", AppTheme.dangerColor),
+                _buildStatItem("Success", "$successRate%", colorScheme.primary),
+                _buildStatItem("Completed", "$completed", Colors.green),
+                _buildStatItem("Missed", "$failed", colorScheme.error),
               ],
             ),
             const SizedBox(height: 20),
@@ -252,10 +226,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (double value, TitleMeta meta) {
-                          const style = TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold, fontSize: 10);
                           const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
                           if (value.toInt() >= 0 && value.toInt() < 7) {
-                            return SideTitleWidget(axisSide: meta.axisSide, child: Text(days[value.toInt()], style: style));
+                            return SideTitleWidget(axisSide: meta.axisSide, child: Text(days[value.toInt()]));
                           }
                           return const SizedBox.shrink();
                         },
@@ -289,24 +262,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Column(
       children: [
         Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-        Text(title, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w500)),
+        Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
       ],
     );
   }
 
   BarChartGroupData _makeGroupData(int x, double completed, double failed) {
+    final colorScheme = Theme.of(context).colorScheme;
     return BarChartGroupData(
       x: x,
       barRods: [
         BarChartRodData(
           toY: completed,
-          color: AppTheme.successColor,
+          color: Colors.green,
           width: 8,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
         ),
         BarChartRodData(
           toY: failed,
-          color: AppTheme.dangerColor.withOpacity(0.8),
+          color: colorScheme.error.withOpacity(0.8),
           width: 8,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
         ),
@@ -332,6 +306,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             return await _showDeleteConfirmDialog(context, goal);
           } else if (direction == DismissDirection.startToEnd) {
              // Edit Goal View (Does not dismiss row)
+             HapticFeedback.lightImpact();
              Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => AddGoalScreen(goalToEdit: goal)),
@@ -340,33 +315,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           }
           return false;
         },
-        background: _buildSwipeBackground(Icons.edit, AppTheme.accentColor, Alignment.centerLeft),
-        secondaryBackground: _buildSwipeBackground(Icons.delete, AppTheme.dangerColor, Alignment.centerRight),
-        child: GlassmorphicContainer(
-          width: double.infinity,
-          height: goal.isActionBased ? 120 : 160,
-          borderRadius: 20,
-          blur: 20,
-          alignment: Alignment.center,
-          border: 1.5,
-          linearGradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppTheme.cardColor.withOpacity(0.9),
-              AppTheme.cardColor.withOpacity(0.6),
-            ],
-          ),
-          borderGradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white.withOpacity(0.8),
-              Colors.white.withOpacity(0.2),
-            ],
-          ),
+        background: _buildSwipeBackground(Icons.edit, Theme.of(context).colorScheme.primary, Alignment.centerLeft),
+        secondaryBackground: _buildSwipeBackground(Icons.delete, Theme.of(context).colorScheme.error, Alignment.centerRight),
+        child: Card(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: goal.isActionBased
                 ? _buildActionGoal(goal, log, isCompleted)
                 : _buildAvoidanceGoal(goal, log, isFailed, isPending),
@@ -384,18 +337,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (streak == 0) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: AppTheme.accentColor.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.accentColor.withOpacity(0.4)),
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
          mainAxisSize: MainAxisSize.min,
          children: [
             const Text("🔥", style: TextStyle(fontSize: 12)),
             const SizedBox(width: 4),
-            Text("$streak Day Streak", style: const TextStyle(color: AppTheme.accentColor, fontSize: 11, fontWeight: FontWeight.bold)),
+            Text("$streak Days", style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, fontSize: 11, fontWeight: FontWeight.bold)),
          ],
       ),
     );
@@ -403,13 +355,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildSwipeBackground(IconData icon, Color color, Alignment alignment) {
     return Container(
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20),
-      ),
+      color: color.withOpacity(0.1),
       alignment: alignment,
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Icon(icon, color: color, size: 30),
+      child: Icon(icon, color: color, size: 28),
     );
   }
 
@@ -417,22 +366,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
      return showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: AppTheme.backgroundLight,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Delete Goal?', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-          content: Text('Are you sure you want to permanently delete "${goal.title}" and its logs?', style: const TextStyle(color: AppTheme.textSecondary)),
+          title: const Text('Delete Goal?'),
+          content: Text('Are you sure you want to permanently delete "${goal.title}" and its logs?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+              child: const Text('Cancel'),
             ),
-            ElevatedButton(
-               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerColor),
+            TextButton(
                onPressed: () {
                  ref.read(goalProvider.notifier).deleteGoal(goal.id);
                  Navigator.pop(context, true);
                },
-               child: const Text('Delete', style: TextStyle(color: Colors.white)),
+               child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ),
           ],
         ),
@@ -450,20 +396,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Text(
                 goal.title,
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: isCompleted ? AppTheme.textSecondary : AppTheme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                   decoration: isCompleted ? TextDecoration.lineThrough : null,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Row(
                 children: [
-                  const Text(
-                    "Action Goal",
-                    style: TextStyle(fontSize: 12, color: AppTheme.accentColor, fontWeight: FontWeight.w600),
+                  Text(
+                    "Action",
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.primary),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   _buildStreakPill(goal),
                 ],
               ),
@@ -472,33 +417,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         if (isCompleted)
            IconButton(
-             icon: const Icon(Icons.undo, color: AppTheme.textSecondary, size: 24),
-             tooltip: 'Unmark',
-             onPressed: () => ref.read(goalProvider.notifier).unmarkActionComplete(log.id),
+             icon: const Icon(Icons.undo, size: 24),
+             onPressed: () {
+               ref.read(goalProvider.notifier).unmarkActionComplete(log.id);
+             },
            ),
-        GestureDetector(
-          onTap: () {
-            if (!isCompleted) {
+        Checkbox(
+          value: isCompleted,
+          onChanged: (val) {
+            if (val == true) {
               ref.read(goalProvider.notifier).markActionComplete(log.id);
             }
           },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isCompleted ? AppTheme.successColor : Colors.transparent,
-              border: Border.all(
-                color: isCompleted ? AppTheme.successColor : AppTheme.textSecondary.withOpacity(0.3),
-                width: 2.5,
-              ),
-              boxShadow: isCompleted ? [BoxShadow(color: AppTheme.successColor.withOpacity(0.4), blurRadius: 10, spreadRadius: 1)] : [],
-            ),
-            child: isCompleted
-                ? const Icon(Icons.check, color: Colors.white, size: 26)
-                : const SizedBox.shrink(),
-          ),
         ),
       ],
     );
@@ -520,33 +450,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 goal.title,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: isFailed ? AppTheme.textSecondary : AppTheme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                   decoration: isFailed ? TextDecoration.lineThrough : null,
                 ),
               ),
             ),
             if (isFailed)
                IconButton(
-                 icon: const Icon(Icons.undo, color: AppTheme.textSecondary, size: 24),
-                 tooltip: 'Unmark',
-                 onPressed: () => ref.read(goalProvider.notifier).unmarkActionComplete(log.id),
+                 icon: const Icon(Icons.undo, size: 20),
+                 onPressed: () {
+                   ref.read(goalProvider.notifier).unmarkActionComplete(log.id);
+                 },
                )
             else if (isPending)
-              InkWell(
-                onTap: () {
+              OutlinedButton(
+                onPressed: () {
                   ref.read(goalProvider.notifier).markAvoidanceFailed(log.id);
                 },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.dangerColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.dangerColor.withOpacity(0.5)),
-                  ),
-                  child: const Text("Mark Fail", style: TextStyle(color: AppTheme.dangerColor, fontSize: 13, fontWeight: FontWeight.bold)),
-                ),
+                child: const Text("Mark Fail"),
               ),
           ],
         ),
@@ -556,27 +478,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             Row(
               children: [
-                const Text("Continuous Limit", style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w500)),
-                const SizedBox(width: 12),
+                const Text("Limit", style: TextStyle(fontSize: 12)),
+                const SizedBox(width: 8),
                 _buildStreakPill(goal),
               ],
             ),
             Text(
                isFailed ? "0%" : "${(progress * 100).toInt()}%",
-              style: TextStyle(fontSize: 14, color: isFailed ? AppTheme.dangerColor : AppTheme.accentColor, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 14, color: isFailed ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
             ),
           ],
         ),
-        const SizedBox(height: 10),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: LinearProgressIndicator(
-            value: isFailed ? 0 : progress,
-            backgroundColor: AppTheme.textSecondary.withOpacity(0.1),
-            valueColor: AlwaysStoppedAnimation<Color>(
-              isFailed ? AppTheme.dangerColor : AppTheme.accentColor,
-            ),
-            minHeight: 8,
+        const SizedBox(height: 8),
+        LinearProgressIndicator(
+          value: isFailed ? 0 : progress,
+          backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            isFailed ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary,
           ),
         ),
       ],

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:glassmorphism/glassmorphism.dart';
 import 'package:reset_flow/models/due.dart';
 import 'package:reset_flow/providers/due_provider.dart';
 import 'package:reset_flow/theme/app_theme.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
 class DuesScreen extends ConsumerStatefulWidget {
   const DuesScreen({super.key});
@@ -19,29 +21,49 @@ class _DuesScreenState extends ConsumerState<DuesScreen> {
     final dues = ref.watch(dueProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: const Text('Upcoming Deadlines', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: dues.isEmpty
-          ? const Center(
-              child: Text(
-                "No deadlines set.\nTap + to add a due date.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
+          ? Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Center(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 36,
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                          child: Icon(Icons.calendar_today_outlined, color: Theme.of(context).colorScheme.primary, size: 40),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          "No Deadlines",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          "You're all caught up on your hard tasks.",
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(24.0),
-              itemCount: dues.length,
-              itemBuilder: (context, index) {
-                final due = dues[index];
-                return _buildDueCard(due);
-              },
-            ),
+                padding: const EdgeInsets.all(16.0),
+                itemCount: dues.length,
+                itemBuilder: (context, index) {
+                  return _buildDueCard(dues[index]);
+                },
+              ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.accentColor,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add),
         onPressed: () => _showAddEditDialog(context, null),
       ),
     );
@@ -51,92 +73,41 @@ class _DuesScreenState extends ConsumerState<DuesScreen> {
     final isOverdue = due.deadline.isBefore(DateTime.now()) && !due.isCompleted;
     final formatter = DateFormat('MMM dd, yyyy - hh:mm a');
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Container(
-        decoration: BoxDecoration(
-          boxShadow: AppTheme.glassShadows(),
-          borderRadius: BorderRadius.circular(24),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: Checkbox(
+          value: due.isCompleted,
+          onChanged: (val) {
+             ref.read(dueProvider.notifier).toggleDueCompletion(due);
+          },
         ),
-        child: GlassmorphicContainer(
-          width: double.infinity,
-          height: 100,
-          borderRadius: 24,
-          blur: 20,
-          alignment: Alignment.center,
-          border: 1.5,
-          linearGradient: due.isCompleted
-              ? LinearGradient(colors: [AppTheme.successColor.withOpacity(0.05), AppTheme.successColor.withOpacity(0.02)])
-              : AppTheme.glassLinearGradient(),
-          borderGradient: AppTheme.glassBorderGradient(),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: () => ref.read(dueProvider.notifier).toggleDueCompletion(due),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: due.isCompleted ? AppTheme.successColor : Colors.transparent,
-                      border: Border.all(
-                        color: due.isCompleted ? AppTheme.successColor : AppTheme.textSecondary.withOpacity(0.3),
-                        width: 2,
-                      ),
-                    ),
-                    child: due.isCompleted ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        due.title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: due.isCompleted ? AppTheme.textSecondary : AppTheme.textPrimary,
-                          decoration: due.isCompleted ? TextDecoration.lineThrough : null,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        formatter.format(due.deadline),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isOverdue ? AppTheme.dangerColor : AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      icon: const Icon(Icons.edit_outlined, size: 20, color: AppTheme.textSecondary),
-                      onPressed: () => _showAddEditDialog(context, due),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      icon: const Icon(Icons.delete_outline, size: 20, color: AppTheme.dangerColor),
-                      onPressed: () => ref.read(dueProvider.notifier).deleteDue(due.id),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+        title: Text(
+          due.title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            decoration: due.isCompleted ? TextDecoration.lineThrough : null,
           ),
+        ),
+        subtitle: Text(
+          formatter.format(due.deadline),
+          style: TextStyle(
+            color: isOverdue ? Theme.of(context).colorScheme.error : null,
+            fontWeight: isOverdue ? FontWeight.bold : null,
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              onPressed: () => _showAddEditDialog(context, due),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 20),
+              onPressed: () => ref.read(dueProvider.notifier).deleteDue(due.id),
+            ),
+          ],
         ),
       ),
     );
@@ -152,22 +123,19 @@ class _DuesScreenState extends ConsumerState<DuesScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              backgroundColor: AppTheme.backgroundLight,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: Text(existingDue == null ? 'New Deadline' : 'Edit Deadline', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              title: Text(existingDue == null ? 'New Deadline' : 'Edit Deadline'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: titleController,
-                    style: const TextStyle(color: AppTheme.textPrimary),
                     decoration: const InputDecoration(labelText: 'Task Description'),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(DateFormat('MMM dd, yyyy').format(selectedDate), style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
+                      Text(DateFormat('MMM dd, yyyy').format(selectedDate)),
                       TextButton(
                         onPressed: () async {
                            final picked = await showDatePicker(
@@ -189,10 +157,9 @@ class _DuesScreenState extends ConsumerState<DuesScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+                  child: const Text('Cancel'),
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor),
+                TextButton(
                   onPressed: () {
                     if (titleController.text.trim().isEmpty) return;
                     
@@ -213,7 +180,7 @@ class _DuesScreenState extends ConsumerState<DuesScreen> {
                     }
                     Navigator.pop(context);
                   },
-                  child: const Text('Save', style: TextStyle(color: Colors.white)),
+                  child: const Text('Save'),
                 ),
               ],
             );

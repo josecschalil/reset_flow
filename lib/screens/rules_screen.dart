@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:glassmorphism/glassmorphism.dart';
 import 'package:reset_flow/models/rule.dart';
 import 'package:reset_flow/providers/rule_provider.dart';
 import 'package:reset_flow/theme/app_theme.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
 class RulesScreen extends ConsumerStatefulWidget {
   const RulesScreen({super.key});
@@ -18,109 +20,99 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
     final rules = ref.watch(ruleProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: const Text('Pre-planned Decisions', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: rules.isEmpty
-          ? const Center(
-              child: Text(
-                "No decisions set.\nTap + to add a problem and solutions.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
+          ? Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Center(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 36,
+                          backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                          child: Icon(Icons.shield_outlined, color: Theme.of(context).colorScheme.error, size: 40),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          "No Decisions Set",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          "Pre-plan your responses to stay in control.",
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(24.0),
-              itemCount: rules.length,
-              itemBuilder: (context, index) {
-                final rule = rules[index];
-                return _buildRuleCard(rule);
-              },
-            ),
+                padding: const EdgeInsets.all(16.0),
+                itemCount: rules.length,
+                itemBuilder: (context, index) {
+                  return _buildRuleCard(rules[index]);
+                },
+              ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.accentSecondary,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add),
         onPressed: () => _showAddEditDialog(context, null),
       ),
     );
   }
 
   Widget _buildRuleCard(AppRule rule) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24.0),
-      child: Container(
-        decoration: BoxDecoration(
-          boxShadow: AppTheme.glassShadows(),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: GlassmorphicContainer(
-          width: double.infinity,
-          height: 100 + (rule.solutions.length * 40.0), // Dynamic height based on solutions
-          borderRadius: 24,
-          blur: 20,
-          alignment: Alignment.center,
-          border: 1.5,
-          linearGradient: AppTheme.glassLinearGradient(),
-          borderGradient: AppTheme.glassBorderGradient(),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        rule.title,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.dangerColor),
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: const Icon(Icons.edit_outlined, size: 20, color: AppTheme.textSecondary),
-                          onPressed: () => _showAddEditDialog(context, rule),
-                        ),
-                        const SizedBox(width: 12),
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: const Icon(Icons.delete_outline, size: 20, color: AppTheme.textSecondary),
-                          onPressed: () => ref.read(ruleProvider.notifier).deleteRule(rule.id),
-                        ),
-                      ],
-                    )
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: rule.solutions.map((sol) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("• ", style: TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold, fontSize: 18)),
-                          Expanded(
-                            child: Text(
-                              sol,
-                              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, height: 1.4, fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                )
-              ],
-            ),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ExpansionTile(
+        title: Text(
+          rule.title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.error,
           ),
         ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              onPressed: () => _showAddEditDialog(context, rule),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 20),
+              onPressed: () => ref.read(ruleProvider.notifier).deleteRule(rule.id),
+            ),
+          ],
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: rule.solutions.map((sol) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.circle, size: 8, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(sol)),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -135,9 +127,7 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              backgroundColor: AppTheme.backgroundLight,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: Text(existingRule == null ? 'New Decision' : 'Edit Decision', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              title: Text(existingRule == null ? 'New Decision' : 'Edit Decision'),
               content: SizedBox(
                 width: double.maxFinite,
                 child: SingleChildScrollView(
@@ -146,15 +136,9 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                     children: [
                       TextField(
                         controller: titleController,
-                        style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
                         decoration: const InputDecoration(labelText: 'Problem / Situation'),
                       ),
-                      const SizedBox(height: 24),
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text("Pointwise Solutions:", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                      ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       // List of solution fields
                       ...List.generate(solutions.length, (index) {
                         return Padding(
@@ -164,10 +148,8 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                               Expanded(
                                 child: TextFormField(
                                   initialValue: solutions[index],
-                                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
                                   decoration: InputDecoration(
-                                    hintText: 'Solution point ${index + 1}',
-                                    isDense: true,
+                                    labelText: 'Solution point ${index + 1}',
                                   ),
                                   onChanged: (val) {
                                     solutions[index] = val;
@@ -175,7 +157,7 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.remove_circle_outline, color: AppTheme.dangerColor, size: 20),
+                                icon: const Icon(Icons.remove_circle_outline),
                                 onPressed: () {
                                   if (solutions.length > 1) {
                                     setState(() {
@@ -188,15 +170,14 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                           ),
                         );
                       }),
-                      const SizedBox(height: 12),
                       TextButton.icon(
                         onPressed: () {
                           setState(() {
-                            solutions.add(''); // Add empty solution
+                            solutions.add('');
                           });
                         },
-                        icon: const Icon(Icons.add, color: AppTheme.accentColor),
-                        label: const Text('Add Point', style: TextStyle(color: AppTheme.accentColor)),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Point'),
                       ),
                     ],
                   ),
@@ -205,14 +186,11 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+                  child: const Text('Cancel'),
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentSecondary),
+                TextButton(
                   onPressed: () {
                     if (titleController.text.trim().isEmpty) return;
-                    
-                    // Filter out empty solutions
                     final finalSolutions = solutions.where((s) => s.trim().isNotEmpty).toList();
                     if (finalSolutions.isEmpty) return;
                     
@@ -232,7 +210,7 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                     }
                     Navigator.pop(context);
                   },
-                  child: const Text('Save', style: TextStyle(color: Colors.white)),
+                  child: const Text('Save'),
                 ),
               ],
             );
