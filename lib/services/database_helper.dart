@@ -4,6 +4,7 @@ import 'package:reset_flow/models/goal.dart';
 import 'package:reset_flow/models/daily_log.dart';
 import 'package:reset_flow/models/rule.dart';
 import 'package:reset_flow/models/due.dart';
+import 'package:reset_flow/models/financial_transaction.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -21,12 +22,21 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(
+    final db = await openDatabase(
       path,
-      version: 3,
+      version: 6,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
+
+    // Double check column existence (failsafe for interrupted migrations)
+    final tables = await db.rawQuery("PRAGMA table_info(financial_transactions)");
+    final hasParentId = tables.any((column) => column['name'] == 'parentId');
+    if (!hasParentId) {
+      await db.execute('ALTER TABLE financial_transactions ADD COLUMN parentId TEXT');
+    }
+
+    return db;
   }
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
@@ -47,6 +57,50 @@ class DatabaseHelper {
           deadline TEXT,
           isCompleted INTEGER,
           createdAt TEXT
+        )
+      ''');
+    }
+
+    if (oldVersion < 4) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS financial_transactions (
+          id TEXT PRIMARY KEY,
+          personName TEXT,
+          amount REAL,
+          type TEXT,
+          date TEXT,
+          label TEXT
+        )
+      ''');
+    }
+
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE financial_transactions ADD COLUMN parentId TEXT');
+    }
+
+    if (oldVersion < 6) {
+      await db.execute('''
+        CREATE TABLE emi_plans (
+          id TEXT PRIMARY KEY,
+          personName TEXT,
+          title TEXT,
+          totalAmount REAL,
+          installmentCount INTEGER,
+          startDate TEXT,
+          status TEXT,
+          type TEXT
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE emi_installments (
+          id TEXT PRIMARY KEY,
+          planId TEXT,
+          amount REAL,
+          dueDate TEXT,
+          isPaid INTEGER,
+          transactionId TEXT,
+          FOREIGN KEY(planId) REFERENCES emi_plans(id) ON DELETE CASCADE
         )
       ''');
     }
@@ -92,6 +146,43 @@ class DatabaseHelper {
         deadline TEXT,
         isCompleted INTEGER,
         createdAt TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE financial_transactions (
+        id TEXT PRIMARY KEY,
+        personName TEXT,
+        amount REAL,
+        type TEXT,
+        date TEXT,
+        label TEXT,
+        parentId TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE emi_plans (
+        id TEXT PRIMARY KEY,
+        personName TEXT,
+        title TEXT,
+        totalAmount REAL,
+        installmentCount INTEGER,
+        startDate TEXT,
+        status TEXT,
+        type TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE emi_installments (
+        id TEXT PRIMARY KEY,
+        planId TEXT,
+        amount REAL,
+        dueDate TEXT,
+        isPaid INTEGER,
+        transactionId TEXT,
+        FOREIGN KEY(planId) REFERENCES emi_plans(id) ON DELETE CASCADE
       )
     ''');
   }
@@ -213,5 +304,67 @@ class DatabaseHelper {
   Future<int> deleteDue(String id) async {
     final db = await instance.database;
     return await db.delete('dues', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- FINANCIAL TRANSACTIONS CRUD ---
+  Future<int> insertTransaction(FinancialTransaction tx) async {
+    final db = await instance.database;
+    try {
+      return await db.insert('financial_transactions', tx.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    } catch (e) {
+      if (e.toString().contains('no column named parentId')) {
+        await db.execute('ALTER TABLE financial_transactions ADD COLUMN parentId TEXT');
+        return await db.insert('financial_transactions', tx.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<FinancialTransaction>> getAllTransactions() async {
+    final db = await instance.database;
+    final maps = await db.query('financial_transactions', orderBy: 'date DESC');
+    return maps.map((map) => FinancialTransaction.fromMap(map)).toList();
+  }
+
+  Future<int> deleteTransaction(String id) async {
+    final db = await instance.database;
+    return await db.delete('financial_transactions', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteTransactionsForPerson(String personName) async {
+    final db = await instance.database;
+    return await db.delete('financial_transactions', where: 'personName = ?', whereArgs: [personName]);
+  }
+
+  // --- EMI CRUD ---
+  Future<int> insertEMIPlan(Map<String, dynamic> plan) async {
+    final db = await instance.database;
+    return await db.insert('emi_plans', plan);
+  }
+
+  Future<int> insertEMIInstallment(Map<String, dynamic> installment) async {
+    final db = await instance.database;
+    return await db.insert('emi_installments', installment);
+  }
+
+  Future<List<Map<String, dynamic>>> getEMIPlans() async {
+    final db = await instance.database;
+    return await db.query('emi_plans');
+  }
+
+  Future<List<Map<String, dynamic>>> getInstallmentsForPlan(String planId) async {
+    final db = await instance.database;
+    return await db.query('emi_installments', where: 'planId = ?', whereArgs: [planId], orderBy: 'dueDate ASC');
+  }
+
+  Future<int> updateEMIInstallment(Map<String, dynamic> installment) async {
+    final db = await instance.database;
+    return await db.update('emi_installments', installment, where: 'id = ?', whereArgs: [installment['id']]);
+  }
+
+  Future<int> deleteEMIPlan(String id) async {
+    final db = await instance.database;
+    await db.delete('emi_installments', where: 'planId = ?', whereArgs: [id]);
+    return await db.delete('emi_plans', where: 'id = ?', whereArgs: [id]);
   }
 }

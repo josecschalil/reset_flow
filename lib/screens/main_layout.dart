@@ -3,6 +3,7 @@ import 'package:reset_flow/screens/home_screen.dart';
 import 'package:reset_flow/screens/report_screen.dart';
 import 'package:reset_flow/screens/rules_screen.dart';
 import 'package:reset_flow/screens/dues_screen.dart';
+import 'package:reset_flow/screens/monetary_dealings_screen.dart';
 import 'package:reset_flow/theme/app_theme.dart';
 
 class MainLayout extends StatefulWidget {
@@ -18,8 +19,9 @@ class _MainLayoutState extends State<MainLayout> {
   final List<Widget> _pages = [
     const HomeScreen(),
     const ReportScreen(),
-    const RulesScreen(), // To be implemented next
-    const DuesScreen(),  // To be implemented next
+    const RulesScreen(), 
+    const DuesScreen(),  
+    const MonetaryDealingsScreen(),
   ];
 
   @override
@@ -49,6 +51,11 @@ class _MainLayoutState extends State<MainLayout> {
             icon: Icon(Icons.event_available_outlined),
             selectedIcon: Icon(Icons.event_available),
             label: 'Dues',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(Icons.account_balance_wallet),
+            label: 'Finance',
           ),
         ],
       ),
