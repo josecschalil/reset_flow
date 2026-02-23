@@ -5,6 +5,9 @@ import 'package:reset_flow/models/daily_log.dart';
 import 'package:reset_flow/models/rule.dart';
 import 'package:reset_flow/models/due.dart';
 import 'package:reset_flow/models/financial_transaction.dart';
+import 'package:reset_flow/models/expense.dart';
+import 'package:reset_flow/models/focus_session.dart';
+import 'package:flutter/material.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -24,17 +27,35 @@ class DatabaseHelper {
 
     final db = await openDatabase(
       path,
-      version: 6,
+      version: 10,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
 
     // Double check column existence (failsafe for interrupted migrations)
-    final tables = await db.rawQuery("PRAGMA table_info(financial_transactions)");
-    final hasParentId = tables.any((column) => column['name'] == 'parentId');
-    if (!hasParentId) {
+    final ftTables = await db.rawQuery("PRAGMA table_info(financial_transactions)");
+    if (!ftTables.any((column) => column['name'] == 'parentId')) {
       await db.execute('ALTER TABLE financial_transactions ADD COLUMN parentId TEXT');
     }
+
+    final goalTables = await db.rawQuery("PRAGMA table_info(goals)");
+    if (!goalTables.any((column) => column['name'] == 'orderIndex')) {
+      await db.execute('ALTER TABLE goals ADD COLUMN orderIndex INTEGER DEFAULT 0');
+    }
+    if (!goalTables.any((column) => column['name'] == 'isOneTime')) {
+      await db.execute('ALTER TABLE goals ADD COLUMN isOneTime INTEGER DEFAULT 0');
+    }
+
+    // Failsafe: create focus_sessions table if not exists (e.g., skipped migration)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS focus_sessions (
+        id TEXT PRIMARY KEY,
+        startTime TEXT NOT NULL,
+        durationMinutes INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        rating INTEGER NOT NULL
+      )
+    ''');
 
     return db;
   }
@@ -104,6 +125,48 @@ class DatabaseHelper {
         )
       ''');
     }
+
+    if (oldVersion < 7) {
+      await db.execute('''
+        CREATE TABLE expense_categories (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          iconCodePoint INTEGER NOT NULL,
+          colorValue INTEGER NOT NULL
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE expenses (
+          id TEXT PRIMARY KEY,
+          categoryId TEXT NOT NULL,
+          amount REAL NOT NULL,
+          date TEXT NOT NULL,
+          label TEXT,
+          FOREIGN KEY(categoryId) REFERENCES expense_categories(id) ON DELETE CASCADE
+        )
+      ''');
+
+      // Populate default categories
+      final defaultCategories = [
+        ['Food', Icons.restaurant.codePoint, Colors.orange.value],
+        ['Rent', Icons.home.codePoint, Colors.blue.value],
+        ['Travel', Icons.flight.codePoint, Colors.green.value],
+        ['Health', Icons.medical_services.codePoint, Colors.red.value],
+        ['Entertainment', Icons.movie.codePoint, Colors.purple.value],
+        ['Shopping', Icons.shopping_bag.codePoint, Colors.pink.value],
+        ['Others', Icons.more_horiz.codePoint, Colors.grey.value],
+      ];
+
+      for (var cat in defaultCategories) {
+        await db.insert('expense_categories', {
+          'id': DateTime.now().millisecondsSinceEpoch.toString() + cat[0].toString(),
+          'name': cat[0],
+          'iconCodePoint': cat[1],
+          'colorValue': cat[2],
+        });
+      }
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -113,7 +176,9 @@ class DatabaseHelper {
         title TEXT NOT NULL,
         isActionBased INTEGER NOT NULL,
         activeDays TEXT NOT NULL,
-        createdAt TEXT NOT NULL
+        createdAt TEXT NOT NULL,
+        orderIndex INTEGER DEFAULT 0,
+        isOneTime INTEGER DEFAULT 0
       )
     ''');
 
@@ -183,6 +248,57 @@ class DatabaseHelper {
         isPaid INTEGER,
         transactionId TEXT,
         FOREIGN KEY(planId) REFERENCES emi_plans(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE expense_categories (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        iconCodePoint INTEGER NOT NULL,
+        colorValue INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE expenses (
+        id TEXT PRIMARY KEY,
+        categoryId TEXT NOT NULL,
+        amount REAL NOT NULL,
+        date TEXT NOT NULL,
+        label TEXT,
+        FOREIGN KEY(categoryId) REFERENCES expense_categories(id) ON DELETE CASCADE
+      )
+    ''');
+
+    // Populate default categories
+    final defaultCategories = [
+      ['Food', Icons.restaurant.codePoint, Colors.orange.value],
+      ['Rent', Icons.home.codePoint, Colors.blue.value],
+      ['Travel', Icons.flight.codePoint, Colors.green.value],
+      ['Health', Icons.medical_services.codePoint, Colors.red.value],
+      ['Entertainment', Icons.movie.codePoint, Colors.purple.value],
+      ['Shopping', Icons.shopping_bag.codePoint, Colors.pink.value],
+      ['Others', Icons.more_horiz.codePoint, Colors.grey.value],
+    ];
+
+    for (var cat in defaultCategories) {
+      await db.insert('expense_categories', {
+        'id': DateTime.now().millisecondsSinceEpoch.toString() + cat[0].toString(),
+        'name': cat[0],
+        'iconCodePoint': cat[1],
+        'colorValue': cat[2],
+      });
+    }
+
+    // Tab Focus: Constellations
+    await db.execute('''
+      CREATE TABLE focus_sessions (
+        id TEXT PRIMARY KEY,
+        startTime TEXT NOT NULL,
+        durationMinutes INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        rating INTEGER NOT NULL
       )
     ''');
   }
@@ -366,5 +482,88 @@ class DatabaseHelper {
     final db = await instance.database;
     await db.delete('emi_installments', where: 'planId = ?', whereArgs: [id]);
     return await db.delete('emi_plans', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- EXPENSE CATEGORIES CRUD ---
+  Future<int> insertExpenseCategory(ExpenseCategory category) async {
+    final db = await instance.database;
+    return await db.insert('expense_categories', category.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<ExpenseCategory>> getAllExpenseCategories() async {
+    final db = await instance.database;
+    final maps = await db.query('expense_categories', orderBy: 'name ASC');
+    return maps.map((map) => ExpenseCategory.fromMap(map)).toList();
+  }
+
+  Future<int> updateExpenseCategory(ExpenseCategory category) async {
+    final db = await instance.database;
+    return await db.update('expense_categories', category.toMap(), where: 'id = ?', whereArgs: [category.id]);
+  }
+
+  Future<int> deleteExpenseCategory(String id) async {
+    final db = await instance.database;
+    return await db.delete('expense_categories', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- EXPENSES CRUD ---
+  Future<int> insertExpense(Expense expense) async {
+    final db = await instance.database;
+    return await db.insert('expenses', expense.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Expense>> getAllExpenses() async {
+    final db = await instance.database;
+    final maps = await db.query('expenses', orderBy: 'date DESC');
+    return maps.map((map) => Expense.fromMap(map)).toList();
+  }
+
+  Future<int> updateExpense(Expense expense) async {
+    final db = await instance.database;
+    return await db.update('expenses', expense.toMap(), where: 'id = ?', whereArgs: [expense.id]);
+  }
+
+  Future<int> deleteExpense(String id) async {
+    final db = await instance.database;
+    return await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- FOCUS SESSIONS (CONSTELLATIONS) ---
+  Future<void> insertFocusSession(FocusSession session) async {
+    final db = await instance.database;
+    await db.insert('focus_sessions', session.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<FocusSession>> getAllFocusSessions() async {
+    final db = await instance.database;
+    final maps = await db.query('focus_sessions', orderBy: 'startTime DESC');
+    return maps.map((map) => FocusSession.fromMap(map)).toList();
+  }
+
+  /// Delete all sessions for a given year+month
+  Future<int> deleteFocusSessionsByMonth(int year, int month) async {
+    final db = await instance.database;
+    final prefix = '${year.toString().padLeft(4,'0')}-${month.toString().padLeft(2,'0')}';
+    return await db.delete(
+      'focus_sessions',
+      where: "startTime LIKE ?",
+      whereArgs: ['$prefix%'],
+    );
+  }
+
+  /// Delete all sessions for a given date string (yyyy-MM-dd)
+  Future<int> deleteFocusSessionsByDay(String dayStr) async {
+    final db = await instance.database;
+    return await db.delete(
+      'focus_sessions',
+      where: "startTime LIKE ?",
+      whereArgs: ['$dayStr%'],
+    );
+  }
+
+  /// Clear every focus session
+  Future<int> clearAllFocusSessions() async {
+    final db = await instance.database;
+    return await db.delete('focus_sessions');
   }
 }

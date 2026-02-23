@@ -4,6 +4,7 @@ import 'package:reset_flow/screens/report_screen.dart';
 import 'package:reset_flow/screens/rules_screen.dart';
 import 'package:reset_flow/screens/dues_screen.dart';
 import 'package:reset_flow/screens/monetary_dealings_screen.dart';
+import 'package:reset_flow/screens/focus_mode_screen.dart';
 import 'package:reset_flow/theme/app_theme.dart';
 
 class MainLayout extends StatefulWidget {
@@ -40,7 +41,7 @@ class _MainLayoutState extends State<MainLayout> {
           NavigationDestination(
             icon: Icon(Icons.insights_outlined),
             selectedIcon: Icon(Icons.insights),
-            label: 'Report',
+            label: 'Goals',
           ),
           NavigationDestination(
             icon: Icon(Icons.gavel_outlined),

@@ -6,6 +6,10 @@ import 'package:reset_flow/providers/monetary_provider.dart';
 import 'package:reset_flow/providers/emi_provider.dart';
 import 'package:reset_flow/models/emi_model.dart';
 import 'package:reset_flow/screens/emi_details_screen.dart';
+import 'package:reset_flow/providers/expense_provider.dart';
+import 'package:reset_flow/models/expense.dart';
+import 'package:reset_flow/widgets/expense_dialogs.dart';
+import 'package:reset_flow/screens/category_expense_detail_screen.dart';
 
 class MonetaryDealingsScreen extends ConsumerStatefulWidget {
   const MonetaryDealingsScreen({super.key});
@@ -21,45 +25,99 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
     final notifier = ref.read(monetaryProvider.notifier);
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Monetary Dealings'),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Finance'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Ledger'),
+              Tab(text: 'Expenses'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildLedgerView(state, notifier, colorScheme),
+            _buildExpensesView(),
+          ],
+        ),
       ),
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () => notifier.loadTransactions(),
-              child: CustomScrollView(
-                slivers: [
-                  // 1. Summary Dashboard
-                  SliverToBoxAdapter(
-                    child: _buildSummaryDashboard(notifier, colorScheme),
-                  ),
+    );
+  }
 
-                  // 1.1 Action Cards
-                  SliverToBoxAdapter(
-                    child: _buildActionCards(context, notifier, colorScheme),
-                  ),
+  Widget _buildLedgerView(MonetaryState state, MonetaryNotifier notifier, ColorScheme colorScheme) {
+    return state.isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : RefreshIndicator(
+            onRefresh: () => notifier.loadTransactions(),
+            child: CustomScrollView(
+              slivers: [
+                // 1. Summary Dashboard
+                SliverToBoxAdapter(
+                  child: _buildSummaryDashboard(notifier, colorScheme),
+                ),
 
-                  // 2. EMI & Liabilities Section
-                  _buildEMISection(colorScheme),
+                // 1.1 Action Cards
+                SliverToBoxAdapter(
+                  child: _buildActionCards(context, notifier, colorScheme),
+                ),
 
-                  // 3. People List Header
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-                      child: Text(
-                        'People',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                      ),
+                // 2. EMI & Liabilities Section
+                _buildEMISection(colorScheme),
+
+                // 3. People List Header
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                    child: Text(
+                      'People',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ),
+                ),
 
-                  // 4. People List
-                  _buildPeopleList(state, notifier, colorScheme),
-                ],
+                // 4. People List
+                _buildPeopleList(state, notifier, colorScheme),
+              ],
+            ),
+          );
+  }
+
+  Widget _buildExpensesView() {
+    final expenseState = ref.watch(expenseProvider);
+    final expenseNotifier = ref.read(expenseProvider.notifier);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    if (expenseState.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => expenseNotifier.loadAll(),
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: _buildSwipeableMonthCard(expenseState, expenseNotifier, colorScheme),
+          ),
+          if (expenseState.isCurrentMonth)
+            SliverToBoxAdapter(
+              child: _buildExpenseActionCards(expenseNotifier, colorScheme),
+            ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+              child: Text(
+                'Spending by Category',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold, color: Colors.grey),
               ),
             ),
+          ),
+          _buildExpenseGrid(expenseState, expenseNotifier, colorScheme),
+        ],
+      ),
     );
   }
 
@@ -455,9 +513,347 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
       ),
     );
   }
+
+  // --- EXPENSES UI HELPERS ---
+
+  Widget _buildSwipeableMonthCard(ExpenseState state, ExpenseNotifier notifier, ColorScheme colorScheme) {
+    final sel = state.selectedMonth;
+    final monthLabel = DateFormat('MMMM yyyy').format(sel);
+    final total = state.totalForSelectedMonth;
+    final txCount = state.selectedMonthExpenses.length;
+
+    final now = DateTime.now();
+    final isCurrentMonth = state.isCurrentMonth;
+    // Can go back if there are older months in the data
+    final canGoBack = state.availableMonths.any(
+        (m) => m.isBefore(DateTime(sel.year, sel.month)));
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            colorScheme.primary.withOpacity(0.8),
+            colorScheme.primary,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withOpacity(0.2),
+            blurRadius: 25,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+        child: Column(
+          children: [
+            // Month navigation row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  onPressed: canGoBack ? () => notifier.goToPreviousMonth() : null,
+                  icon: const Icon(Icons.chevron_left_rounded),
+                  color: Colors.white,
+                  iconSize: 32,
+                  disabledColor: Colors.white24,
+                ),
+                // Month label
+                Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        monthLabel.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                    if (!isCurrentMonth) ...
+                      [
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'Archive',
+                            style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                  ],
+                ),
+                IconButton(
+                  onPressed: isCurrentMonth ? null : () => notifier.goToNextMonth(),
+                  icon: const Icon(Icons.chevron_right_rounded),
+                  color: Colors.white,
+                  iconSize: 32,
+                  disabledColor: Colors.white24,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '₹${total.toStringAsFixed(2)}',
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '$txCount transaction${txCount == 1 ? '' : 's'} this month',
+              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpenseActionCards(ExpenseNotifier notifier, ColorScheme colorScheme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildActionCard(
+              context,
+              'Add Expense',
+              Icons.receipt_long,
+              colorScheme.tertiary,
+              () => _showAddExpenseDialog(context, notifier),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildActionCard(
+              context,
+              'Categories',
+              Icons.category_outlined,
+              colorScheme.secondary,
+              () => _showManageCategoriesDialog(context, notifier),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpenseGrid(ExpenseState state, ExpenseNotifier notifier, ColorScheme colorScheme) {
+    if (state.categories.isEmpty) {
+      return const SliverFillRemaining(
+        child: Center(child: Text('No categories found.')),
+      );
+    }
+
+    final monthExpenses = state.selectedMonthExpenses;
+    final totalMonthly = monthExpenses.fold(0.0, (sum, e) => sum + e.amount);
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.0,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final category = state.categories[index];
+            final categoryExpenses = monthExpenses
+                .where((e) => e.categoryId == category.id)
+                .toList();
+
+            final double total = categoryExpenses.fold(0.0, (sum, e) => sum + e.amount);
+            final double totalShare = totalMonthly > 0 ? total / totalMonthly : 0;
+
+            return _buildCategoryCard(category, total, categoryExpenses.length, totalShare);
+          },
+          childCount: state.categories.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryCard(ExpenseCategory category, double total, int count, double share) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final categoryColor = Color(category.colorValue);
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CategoryExpenseDetailScreen(category: category),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: categoryColor.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+          border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.5)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20,
+                bottom: -20,
+                child: Icon(
+                  IconData(category.iconCodePoint, fontFamily: 'MaterialIcons'),
+                  size: 100,
+                  color: categoryColor.withOpacity(0.05),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: categoryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            IconData(category.iconCodePoint, fontFamily: 'MaterialIcons'),
+                            color: categoryColor,
+                            size: 20,
+                          ),
+                        ),
+                        if (share > 0)
+                          Text(
+                            '${(share * 100).toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: categoryColor.withOpacity(0.5),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Text(
+                      category.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '₹${total.toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 20,
+                        color: total > 0 ? colorScheme.onSurface : Colors.grey.shade400,
+                      ),
+                    ),
+                    if (total > 0) ...[
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: LinearProgressIndicator(
+                          value: share,
+                          backgroundColor: categoryColor.withOpacity(0.1),
+                          valueColor: AlwaysStoppedAnimation<Color>(categoryColor.withOpacity(0.4)),
+                          minHeight: 4,
+                        ),
+                      ),
+                    ] else
+                      Text(
+                        '$count expenses',
+                        style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Removing _buildExpenseList as it's replaced by grid and detail screen
+
+
+  void _showDeleteExpenseConfirm(
+      BuildContext context, ExpenseNotifier notifier, String id) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Expense?'),
+        content: const Text('This action cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              notifier.deleteExpense(id);
+              Navigator.pop(context);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddExpenseDialog(BuildContext context, ExpenseNotifier notifier,
+      {Expense? initialExpense}) {
+    showDialog(
+      context: context,
+      builder: (context) =>
+          AddExpenseDialog(notifier: notifier, initialExpense: initialExpense),
+    );
+  }
+
+  void _showManageCategoriesDialog(
+      BuildContext context, ExpenseNotifier notifier) {
+    showDialog(
+      context: context,
+      builder: (context) => ManageCategoriesDialog(notifier: notifier),
+    );
+  }
 }
 
-// --- Placeholder for PersonDetailScreen ---
+// --- PersonDetailScreen ---
 class PersonDetailScreen extends ConsumerWidget {
   final String personName;
   const PersonDetailScreen({super.key, required this.personName});

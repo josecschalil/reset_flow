@@ -34,4 +34,20 @@ class DailyLog {
           : null,
     );
   }
+
+  DailyLog copyWith({
+    String? id,
+    String? goalId,
+    String? date,
+    String? status,
+    DateTime? completedAt,
+  }) {
+    return DailyLog(
+      id: id ?? this.id,
+      goalId: goalId ?? this.goalId,
+      date: date ?? this.date,
+      status: status ?? this.status,
+      completedAt: completedAt ?? this.completedAt,
+    );
+  }
 }
