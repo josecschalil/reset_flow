@@ -5,6 +5,7 @@ import 'package:reset_flow/screens/focus_mode_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:reset_flow/utils/quotes.dart';
 import 'package:reset_flow/widgets/momentum_roulette.dart';
+import 'package:reset_flow/widgets/analytics_section.dart';
 import 'dart:math' as math;
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -54,6 +55,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           bestStreak,
                           last7,
                         ),
+                        const SizedBox(height: 28),
+                        const AnalyticsSection(),
                         const SizedBox(height: 28),
                         MomentumRoulette(successRate: successRate),
                         const SizedBox(height: 40),

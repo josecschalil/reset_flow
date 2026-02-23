@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:reset_flow/providers/goal_provider.dart';
-import 'package:reset_flow/theme/app_theme.dart';
-import 'package:intl/intl.dart';
 import 'package:reset_flow/models/goal.dart';
 import 'package:reset_flow/models/daily_log.dart';
 import 'package:flutter/services.dart';
@@ -24,7 +22,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Today's Goals", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Today's Goals",
+            style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: goalState.isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -58,14 +57,19 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   }
 
   Widget _buildSummaryCards(GoalState state) {
-    int totalCompleted = state.allLogs.where((l) => l.status == 'completed').length;
+    int totalCompleted =
+        state.allLogs.where((l) => l.status == 'completed').length;
     int totalFailed = state.allLogs.where((l) => l.status == 'failed').length;
 
     return Row(
       children: [
-        Expanded(child: _buildSummaryCard("Completed", "$totalCompleted", Colors.green)),
+        Expanded(
+            child: _buildSummaryCard(
+                "Completed", "$totalCompleted", Colors.green)),
         const SizedBox(width: 12),
-        Expanded(child: _buildSummaryCard("Missed/Failed", "$totalFailed", Theme.of(context).colorScheme.error)),
+        Expanded(
+            child: _buildSummaryCard("Missed/Failed", "$totalFailed",
+                Theme.of(context).colorScheme.error)),
       ],
     );
   }
@@ -77,7 +81,11 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: accentColor)),
+            Text(value,
+                style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: accentColor)),
             const SizedBox(height: 4),
             Text(title, style: const TextStyle(fontSize: 12)),
           ],
@@ -100,13 +108,17 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                   children: [
                     CircleAvatar(
                       radius: 36,
-                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                      child: Icon(Icons.auto_awesome, color: Theme.of(context).colorScheme.primary, size: 40),
+                      backgroundColor:
+                          Theme.of(context).colorScheme.primaryContainer,
+                      child: Icon(Icons.auto_awesome,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 40),
                     ),
                     const SizedBox(height: 20),
                     const Text(
                       "No Goals Yet",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     const Text(
@@ -132,7 +144,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         return AnimatedBuilder(
           animation: animation,
           builder: (BuildContext context, Widget? child) {
-            final double animValue = Curves.easeInOut.transform(animation.value);
+            final double animValue =
+                Curves.easeInOut.transform(animation.value);
             final double elevation = lerpDouble(0, 6, animValue)!;
             return Material(
               elevation: elevation,
@@ -185,17 +198,21 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             HapticFeedback.lightImpact();
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => AddGoalScreen(goalToEdit: goal)),
+              MaterialPageRoute(
+                  builder: (context) => AddGoalScreen(goalToEdit: goal)),
             );
             return false;
           }
           return false;
         },
-        background: _buildSwipeBackground(Icons.edit, Theme.of(context).colorScheme.primary, Alignment.centerLeft),
-        secondaryBackground: _buildSwipeBackground(Icons.delete, Theme.of(context).colorScheme.error, Alignment.centerRight),
+        background: _buildSwipeBackground(Icons.edit,
+            Theme.of(context).colorScheme.primary, Alignment.centerLeft),
+        secondaryBackground: _buildSwipeBackground(Icons.delete,
+            Theme.of(context).colorScheme.error, Alignment.centerRight),
         child: Card(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: goal.isActionBased
                 ? _buildActionGoal(goal, log, isCompleted)
                 : _buildAvoidanceGoal(goal, log, isFailed, isPending),
@@ -244,7 +261,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     );
   }
 
-  Widget _buildSwipeBackground(IconData icon, Color color, Alignment alignment) {
+  Widget _buildSwipeBackground(
+      IconData icon, Color color, Alignment alignment) {
     return Container(
       color: color.withOpacity(0.1),
       alignment: alignment,
@@ -258,7 +276,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Goal?'),
-        content: Text('Are you sure you want to permanently delete "${goal.title}" and its logs?'),
+        content: Text(
+            'Are you sure you want to permanently delete "${goal.title}" and its logs?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -269,7 +288,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
               ref.read(goalProvider.notifier).deleteGoal(goal.id);
               Navigator.pop(context, true);
             },
-            child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            child: Text('Delete',
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
@@ -297,7 +317,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 children: [
                   Text(
                     "Action",
-                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.primary),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.primary),
                   ),
                   const SizedBox(width: 8),
                   _buildStreakPill(goal),
@@ -328,7 +350,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         if (value == 'edit') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => AddGoalScreen(goalToEdit: goal)),
+            MaterialPageRoute(
+                builder: (context) => AddGoalScreen(goalToEdit: goal)),
           );
         } else if (value == 'delete') {
           await _showDeleteConfirmDialog(context, goal);
@@ -349,9 +372,11 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
           value: 'delete',
           child: Row(
             children: [
-              Icon(Icons.delete, color: Theme.of(context).colorScheme.error, size: 18),
+              Icon(Icons.delete,
+                  color: Theme.of(context).colorScheme.error, size: 18),
               SizedBox(width: 8),
-              Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Text('Delete',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ],
           ),
         ),
@@ -359,7 +384,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     );
   }
 
-  Widget _buildAvoidanceGoal(Goal goal, DailyLog log, bool isFailed, bool isPending) {
+  Widget _buildAvoidanceGoal(
+      Goal goal, DailyLog log, bool isFailed, bool isPending) {
     final progress = ref.read(goalProvider.notifier).getAvoidanceProgress();
 
     return Column(
@@ -387,7 +413,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 },
                 icon: const Icon(Icons.undo, size: 18),
                 label: const Text("Reset"),
-                style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+                style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error),
               )
             else if (isPending)
               OutlinedButton(
@@ -414,7 +441,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
               isFailed ? "0%" : "${(progress * 100).toInt()}%",
               style: TextStyle(
                   fontSize: 14,
-                  color: isFailed ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary,
+                  color: isFailed
+                      ? Theme.of(context).colorScheme.error
+                      : Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold),
             ),
           ],
@@ -424,7 +453,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
           value: isFailed ? 0 : progress,
           backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
           valueColor: AlwaysStoppedAnimation<Color>(
-            isFailed ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary,
+            isFailed
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.primary,
           ),
         ),
       ],
