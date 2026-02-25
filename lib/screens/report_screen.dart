@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:reset_flow/providers/goal_provider.dart';
+import 'package:intl/intl.dart';
 import 'package:reset_flow/models/goal.dart';
 import 'package:reset_flow/models/daily_log.dart';
 import 'package:flutter/services.dart';
@@ -16,131 +17,209 @@ class ReportScreen extends ConsumerStatefulWidget {
 }
 
 class _ReportScreenState extends ConsumerState<ReportScreen> {
+  static const _brand = Color(0xFF5C35C2);
+
   @override
   Widget build(BuildContext context) {
     final goalState = ref.watch(goalProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Today's Goals",
-            style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
       body: goalState.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.all(16),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      _buildSummaryCards(goalState),
-                      const SizedBox(height: 32),
-                      Text(
-                        "Today's Goals",
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
+          : SafeArea(
+              child: CustomScrollView(
+                slivers: [
+                  // ── Header
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Today's Goals",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineLarge
+                                        ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF1A1A2E))),
+                                const SizedBox(height: 4),
+                                Text(
+                                  DateFormat('EEEE, MMM d')
+                                      .format(DateTime.now()),
+                                  style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w400),
+                                ),
+                              ],
                             ),
+                          ),
+                          const SizedBox(width: 12),
+                          Material(
+                            child: InkWell(
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const AddGoalScreen())),
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.add, size: 25, color: Colors.grey),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      _buildAddGoalCard(context),
-                    ]),
+                    ),
                   ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: _buildGoalsList(goalState),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 80)),
-              ],
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+                  // ── Stats bar
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: _buildSummaryBar(goalState),
+                    ),
+                  ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                  // ── Section label
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                      child: Text('GOALS',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                              color: Colors.grey.shade400)),
+                    ),
+                  ),
+
+                  // ── Goal list
+                  if (goalState.todayLogs.isEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _emptyState(),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      sliver: _buildGoalsList(goalState),
+                    ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 80)),
+                ],
+              ),
             ),
     );
   }
 
-  Widget _buildSummaryCards(GoalState state) {
-    int totalCompleted =
-        state.allLogs.where((l) => l.status == 'completed').length;
-    int totalFailed = state.allLogs.where((l) => l.status == 'failed').length;
+  Widget _buildSummaryBar(GoalState state) {
+    int done =
+        state.todayLogs.where((l) => l.status == 'completed').length;
+    int failed =
+        state.todayLogs.where((l) => l.status == 'failed').length;
+    int pending = state.todayLogs.length - done - failed;
 
-    return Row(
-      children: [
-        Expanded(
-            child: _buildSummaryCard(
-                "Completed", "$totalCompleted", Colors.green)),
-        const SizedBox(width: 12),
-        Expanded(
-            child: _buildSummaryCard("Missed/Failed", "$totalFailed",
-                Theme.of(context).colorScheme.error)),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          _statCol('$done', 'DONE', const Color(0xFF2E7D32)),
+          _divider(),
+          _statCol('$pending', 'PENDING', const Color(0xFF1565C0)),
+          _divider(),
+          _statCol('$failed', 'MISSED', Colors.red.shade600),
+        ],
+      ),
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, Color accentColor) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(value,
-                style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: accentColor)),
-            const SizedBox(height: 4),
-            Text(title, style: const TextStyle(fontSize: 12)),
-          ],
-        ),
+  Widget _divider() => Container(
+      width: 1, height: 32, color: Colors.grey.shade200);
+
+  Widget _statCol(String value, String label, Color color) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(value,
+              style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: color)),
+          const SizedBox(height: 2),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.1,
+                  color: Colors.grey.shade400)),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEDE9FB),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.auto_awesome,
+                color: _brand, size: 32),
+          ),
+          const SizedBox(height: 16),
+          const Text('No Goals Yet',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 8),
+          Text(
+            'Tap New Goal to get started',
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildGoalsList(GoalState goalState) {
-    if (goalState.todayLogs.isEmpty) {
-      return SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 16.0),
-          child: Center(
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircleAvatar(
-                      radius: 36,
-                      backgroundColor:
-                          Theme.of(context).colorScheme.primaryContainer,
-                      child: Icon(Icons.auto_awesome,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 40),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      "No Goals Yet",
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Tap the button above to start building momentum.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
     return SliverReorderableList(
       itemCount: goalState.todayLogs.length,
       onReorder: (oldIndex, newIndex) {
         ref.read(goalProvider.notifier).reorderGoals(oldIndex, newIndex);
       },
-      proxyDecorator: (Widget child, int index, Animation<double> animation) {
+      proxyDecorator:
+          (Widget child, int index, Animation<double> animation) {
         return AnimatedBuilder(
           animation: animation,
           builder: (BuildContext context, Widget? child) {
@@ -150,8 +229,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             return Material(
               elevation: elevation,
               color: Colors.transparent,
-              shadowColor: Colors.black.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
+              shadowColor: Colors.black.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(16),
               child: child,
             );
           },
@@ -163,339 +242,377 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         final goal = goalState.goals.firstWhere(
           (g) => g.id == log.goalId,
           orElse: () => Goal(
-            id: '',
-            title: 'Unknown',
-            isActionBased: true,
-            activeDays: [],
-            createdAt: DateTime.now(),
-          ),
+              id: '',
+              title: 'Unknown',
+              isActionBased: true,
+              activeDays: [],
+              createdAt: DateTime.now()),
         );
         return ReorderableDelayedDragStartListener(
           key: ValueKey(log.id),
           index: index,
-          child: _buildGoalCard(context, goal, log),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _buildGoalCard(goal, log),
+          ),
         );
       },
     );
   }
 
-  Widget _buildGoalCard(BuildContext context, Goal goal, DailyLog log) {
+  Widget _buildGoalCard(Goal goal, DailyLog log) {
     if (goal.id.isEmpty) return const SizedBox.shrink();
 
     final isCompleted = log.status == 'completed';
     final isFailed = log.status == 'failed';
     final isPending = log.status == 'pending';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Dismissible(
-        key: Key(log.id),
-        direction: DismissDirection.horizontal,
-        confirmDismiss: (direction) async {
-          if (direction == DismissDirection.endToStart) {
-            return await _showDeleteConfirmDialog(context, goal);
-          } else if (direction == DismissDirection.startToEnd) {
-            HapticFeedback.lightImpact();
-            Navigator.push(
-              context,
+    return Dismissible(
+      key: Key('${log.id}_dismiss'),
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          HapticFeedback.lightImpact();
+          Navigator.push(context,
               MaterialPageRoute(
-                  builder: (context) => AddGoalScreen(goalToEdit: goal)),
-            );
-            return false;
-          }
+                  builder: (_) => AddGoalScreen(goalToEdit: goal)));
           return false;
-        },
-        background: _buildSwipeBackground(Icons.edit,
-            Theme.of(context).colorScheme.primary, Alignment.centerLeft),
-        secondaryBackground: _buildSwipeBackground(Icons.delete,
-            Theme.of(context).colorScheme.error, Alignment.centerRight),
-        child: Card(
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: goal.isActionBased
-                ? _buildActionGoal(goal, log, isCompleted)
-                : _buildAvoidanceGoal(goal, log, isFailed, isPending),
+        } else {
+          return await _showDeleteConfirmDialog(goal);
+        }
+      },
+      background: _swipeBg(Icons.edit, _brand, Alignment.centerLeft),
+      secondaryBackground: _swipeBg(
+          Icons.delete, Colors.red.shade600, Alignment.centerRight),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isCompleted
+                ? const Color(0xFF2E7D32).withOpacity(0.2)
+                : isFailed
+                    ? Colors.red.withOpacity(0.2)
+                    : Colors.grey.shade200,
           ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: goal.isActionBased
+              ? _buildActionRow(goal, log, isCompleted)
+              : _buildAvoidanceContent(goal, log, isFailed, isPending),
         ),
       ),
     );
   }
 
-  Widget _buildStreakPill(Goal goal) {
-    // One-time goals don't have streaks
-    if (goal.isOneTime) return const SizedBox.shrink();
-
-    final state = ref.read(goalProvider);
-    final goalLogs = state.allLogs.where((l) => l.goalId == goal.id).toList();
-    final streak = StreakCalculator.calculateCurrentStreak(goal, goalLogs);
-
-    if (streak == 0) return const SizedBox.shrink();
-
-    final colorScheme = Theme.of(context).colorScheme;
+  Widget _swipeBg(IconData icon, Color color, Alignment alignment) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Icon(icon, color: color, size: 24),
+    );
+  }
+
+  Widget _buildActionRow(Goal goal, DailyLog log, bool isCompleted) {
+    return Row(
+      children: [
+        // Drag handle
+        Icon(Icons.drag_indicator,
+            color: Colors.grey.shade300, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _chip('ACTION', _brand),
+                  const SizedBox(width: 8),
+                  _streakPill(goal),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(goal.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: isCompleted
+                        ? Colors.grey.shade400
+                        : const Color(0xFF1A1A2E),
+                    decoration:
+                        isCompleted ? TextDecoration.lineThrough : null,
+                    decorationColor: Colors.grey.shade400,
+                  )),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Checkbox
+        GestureDetector(
+          onTap: () {
+            if (isCompleted) {
+              ref.read(goalProvider.notifier).unmarkActionComplete(log.id);
+            } else {
+              ref.read(goalProvider.notifier).markActionComplete(log.id);
+            }
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              color: isCompleted ? _brand : Colors.transparent,
+              border: Border.all(
+                color: isCompleted ? _brand : Colors.grey.shade300,
+                width: 2,
+              ),
+            ),
+            child: isCompleted
+                ? const Icon(Icons.check, color: Colors.white, size: 16)
+                : null,
+          ),
+        ),
+        _goalMenu(goal),
+      ],
+    );
+  }
+
+  Widget _buildAvoidanceContent(
+      Goal goal, DailyLog log, bool isFailed, bool isPending) {
+    final progress =
+        ref.read(goalProvider.notifier).getAvoidanceProgress();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.drag_indicator,
+                color: Colors.grey.shade300, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Row(
+                children: [
+                  _chip('LIMIT', Colors.red.shade600),
+                  const SizedBox(width: 8),
+                  _streakPill(goal),
+                ],
+              ),
+            ),
+            _goalMenu(goal),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 30, top: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(goal.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: isFailed
+                        ? Colors.grey.shade400
+                        : const Color(0xFF1A1A2E),
+                    decoration:
+                        isFailed ? TextDecoration.lineThrough : null,
+                    decorationColor: Colors.grey.shade400,
+                  )),
+              if (isFailed)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline,
+                          size: 14, color: Colors.red.shade600),
+                      const SizedBox(width: 4),
+                      Text('Limit exceeded',
+                          style: TextStyle(
+                              color: Colors.red.shade600, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('PROGRESS',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.1,
+                          color: Colors.grey.shade400)),
+                  Text(
+                    isFailed ? '0%' : '${(progress * 100).toInt()}%',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isFailed
+                            ? Colors.red.shade600
+                            : _brand),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: isFailed ? 0 : progress,
+                  minHeight: 5,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation(
+                      isFailed ? Colors.red.shade300 : _brand),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: isFailed
+                    ? TextButton(
+                        onPressed: () => ref
+                            .read(goalProvider.notifier)
+                            .unmarkActionComplete(log.id),
+                        style: TextButton.styleFrom(
+                            foregroundColor: _brand,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 6)),
+                        child: const Text('Reset',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14)),
+                      )
+                    : OutlinedButton(
+                        onPressed: () => ref
+                            .read(goalProvider.notifier)
+                            .markAvoidanceFailed(log.id),
+                        style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red.shade600,
+                            side: BorderSide(
+                                color: Colors.red.shade300),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 6),
+                            shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(20))),
+                        child: const Text('Mark Fail',
+                            style: TextStyle(fontSize: 13)),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _chip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5)),
+    );
+  }
+
+  Widget _streakPill(Goal goal) {
+    if (goal.isOneTime) return const SizedBox.shrink();
+    final state = ref.read(goalProvider);
+    final logs =
+        state.allLogs.where((l) => l.goalId == goal.id).toList();
+    final streak =
+        StreakCalculator.calculateCurrentStreak(goal, logs);
+    if (streak == 0) return const SizedBox.shrink();
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.trending_up_rounded,
-            size: 12,
-            color: colorScheme.primary,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '$streak-day streak',
-            style: TextStyle(
-              color: colorScheme.onPrimaryContainer,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          const Icon(Icons.local_fire_department,
+              size: 13, color: Colors.orange),
+          const SizedBox(width: 3),
+          Text('$streak-day streak',
+              style: const TextStyle(
+                  color: Colors.orange,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600)),
         ],
       ),
     );
   }
 
-  Widget _buildSwipeBackground(
-      IconData icon, Color color, Alignment alignment) {
-    return Container(
-      color: color.withOpacity(0.1),
-      alignment: alignment,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Icon(icon, color: color, size: 28),
-    );
-  }
-
-  Future<bool?> _showDeleteConfirmDialog(BuildContext context, Goal goal) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Goal?'),
-        content: Text(
-            'Are you sure you want to permanently delete "${goal.title}" and its logs?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              ref.read(goalProvider.notifier).deleteGoal(goal.id);
-              Navigator.pop(context, true);
-            },
-            child: Text('Delete',
-                style: TextStyle(color: Theme.of(context).colorScheme.error)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionGoal(Goal goal, DailyLog log, bool isCompleted) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                goal.title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  decoration: isCompleted ? TextDecoration.lineThrough : null,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Text(
-                    "Action",
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.primary),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildStreakPill(goal),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Checkbox(
-          value: isCompleted,
-          onChanged: (val) {
-            if (val == true) {
-              ref.read(goalProvider.notifier).markActionComplete(log.id);
-            } else {
-              ref.read(goalProvider.notifier).unmarkActionComplete(log.id);
-            }
-          },
-        ),
-        _buildGoalOptionsMenu(context, goal),
-      ],
-    );
-  }
-
-  Widget _buildGoalOptionsMenu(BuildContext context, Goal goal) {
+  Widget _goalMenu(Goal goal) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, size: 20),
+      icon: Icon(Icons.more_vert,
+          size: 20, color: Colors.grey.shade400),
       onSelected: (value) async {
         if (value == 'edit') {
           Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => AddGoalScreen(goalToEdit: goal)),
-          );
+              context,
+              MaterialPageRoute(
+                  builder: (_) => AddGoalScreen(goalToEdit: goal)));
         } else if (value == 'delete') {
-          await _showDeleteConfirmDialog(context, goal);
+          await _showDeleteConfirmDialog(goal);
         }
       },
       itemBuilder: (context) => [
         const PopupMenuItem(
-          value: 'edit',
-          child: Row(
-            children: [
-              Icon(Icons.edit, size: 18),
+            value: 'edit',
+            child: Row(children: [
+              Icon(Icons.edit_outlined, size: 18),
               SizedBox(width: 8),
-              Text('Edit'),
-            ],
-          ),
-        ),
+              Text('Edit')
+            ])),
         PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete,
-                  color: Theme.of(context).colorScheme.error, size: 18),
-              SizedBox(width: 8),
-              Text('Delete',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAvoidanceGoal(
-      Goal goal, DailyLog log, bool isFailed, bool isPending) {
-    final progress = ref.read(goalProvider.notifier).getAvoidanceProgress();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                goal.title,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  decoration: isFailed ? TextDecoration.lineThrough : null,
-                ),
-              ),
-            ),
-            if (isFailed)
-              TextButton.icon(
-                onPressed: () {
-                  ref.read(goalProvider.notifier).unmarkActionComplete(log.id);
-                },
-                icon: const Icon(Icons.undo, size: 18),
-                label: const Text("Reset"),
-                style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.error),
-              )
-            else if (isPending)
-              OutlinedButton(
-                onPressed: () {
-                  ref.read(goalProvider.notifier).markAvoidanceFailed(log.id);
-                },
-                child: const Text("Mark Fail"),
-              ),
-            _buildGoalOptionsMenu(context, goal),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                const Text("Limit", style: TextStyle(fontSize: 12)),
-                const SizedBox(width: 8),
-                _buildStreakPill(goal),
-              ],
-            ),
-            Text(
-              isFailed ? "0%" : "${(progress * 100).toInt()}%",
-              style: TextStyle(
-                  fontSize: 14,
-                  color: isFailed
-                      ? Theme.of(context).colorScheme.error
-                      : Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: isFailed ? 0 : progress,
-          backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-          valueColor: AlwaysStoppedAnimation<Color>(
-            isFailed
-                ? Theme.of(context).colorScheme.error
-                : Theme.of(context).colorScheme.primary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAddGoalCard(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddGoalScreen()),
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: colorScheme.primary.withOpacity(0.2)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.add_circle_outline, color: colorScheme.primary),
+            value: 'delete',
+            child: Row(children: [
+              Icon(Icons.delete_outline,
+                  color: Colors.red.shade600, size: 18),
               const SizedBox(width: 8),
-              Text(
-                "Add New Goal",
-                style: TextStyle(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+              Text('Delete',
+                  style: TextStyle(color: Colors.red.shade600))
+            ])),
+      ],
+    );
+  }
+
+  Future<bool?> _showDeleteConfirmDialog(Goal goal) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Goal?'),
+        content:
+            Text('Delete "${goal.title}" and all its history?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: Colors.red.shade600),
+            onPressed: () {
+              ref.read(goalProvider.notifier).deleteGoal(goal.id);
+              Navigator.pop(context, true);
+            },
+            child: const Text('Delete'),
           ),
-        ),
+        ],
       ),
     );
   }

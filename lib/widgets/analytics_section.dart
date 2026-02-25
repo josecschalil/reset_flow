@@ -545,7 +545,7 @@ class _DowHeatmap extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Per-Goal Breakdown (for recurring goals)
 // ---------------------------------------------------------------------------
-class _GoalBreakdown extends StatelessWidget {
+class _GoalBreakdown extends ConsumerWidget {
   final List<Goal> goals;
   final List<DailyLog> allLogs;
   final ColorScheme colorScheme;
@@ -566,7 +566,7 @@ class _GoalBreakdown extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // Filter to goals that have resolved logs (avoid empty list items)
     final activeGoals = goals.where((g) {
       final gl = allLogs.where((l) => l.goalId == g.id).toList();
@@ -599,10 +599,52 @@ class _GoalBreakdown extends StatelessWidget {
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+              child: Dismissible(
+                key: ValueKey(goal.id),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: colorScheme.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(Icons.delete_outline, color: colorScheme.error),
+                ),
+                confirmDismiss: (direction) async {
+                  return await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Delete Goal?'),
+                      content: Text('Are you sure you want to delete "${goal.title}"? This cannot be undone.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancel'),
+                        ),
+                        FilledButton(
+                          style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
+                          onPressed: () {
+                            ref.read(goalProvider.notifier).deleteGoal(goal.id);
+                            Navigator.pop(context, true);
+                          },
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    ),
+                  ) ?? false;
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colorScheme.outline.withOpacity(0.08)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
@@ -698,11 +740,13 @@ class _GoalBreakdown extends StatelessWidget {
                   ),
                 ],
               ),
-            );
-          }),
-        ],
-      ),
-    );
+            ),
+          ),
+        );
+      }),
+    ],
+  ),
+);
   }
 
   Color _rateColor(double r) {

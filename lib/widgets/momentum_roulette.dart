@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:reset_flow/providers/goal_provider.dart';
-import 'package:reset_flow/providers/due_provider.dart';
-import 'package:reset_flow/screens/focus_mode_screen.dart';
 import 'dart:async';
 
 class MomentumRoulette extends ConsumerStatefulWidget {
@@ -21,6 +19,7 @@ class _MomentumRouletteState extends ConsumerState<MomentumRoulette> with Single
   late Animation<double> _scaleAnimation;
   bool _isSpinning = false;
   String? _spinningText;
+  String? _lockedTask;  // persists until next tap
   
   @override
   void initState() {
@@ -72,6 +71,11 @@ class _MomentumRouletteState extends ConsumerState<MomentumRoulette> with Single
   }
 
   void _spinRoulette() async {
+    // If a task is already locked, clear and let user spin again
+    if (_lockedTask != null) {
+      setState(() => _lockedTask = null);
+      return;
+    }
     HapticFeedback.heavyImpact();
     setState(() {
       _isSpinning = true;
@@ -79,25 +83,15 @@ class _MomentumRouletteState extends ConsumerState<MomentumRoulette> with Single
     });
 
     final goalState = ref.read(goalProvider);
-    final duesState = ref.read(dueProvider);
 
-    // Collect all pending tasks
+    // Collect pending action goals for today only
     List<String> validTasks = [];
-    
-    // Add pending action goals for today
     for (var log in goalState.todayLogs) {
        if (log.status == 'pending') {
           final goal = goalState.goals.firstWhere((g) => g.id == log.goalId);
           if (goal.isActionBased) {
              validTasks.add(goal.title);
           }
-       }
-    }
-
-    // Add uncompleted dues
-    for (var due in duesState) {
-       if (!due.isCompleted) {
-          validTasks.add(due.title);
        }
     }
 
@@ -133,27 +127,19 @@ class _MomentumRouletteState extends ConsumerState<MomentumRoulette> with Single
 
     HapticFeedback.vibrate();
     
-    // Lock in the choice
+    // Lock in the choice — persist until next tap
     String selectedTask = validTasks[index];
     setState(() {
        _spinningText = "LOCKED: $selectedTask";
     });
 
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 1200));
     
     setState(() {
       _isSpinning = false;
       _spinningText = null;
+      _lockedTask = selectedTask;  // stay shown until next tap
     });
-
-    if (mounted) {
-       Navigator.push(
-         context,
-         MaterialPageRoute(
-           builder: (context) => FocusModeScreen(taskName: selectedTask),
-         ),
-       );
-    }
   }
 
   @override
@@ -185,10 +171,12 @@ class _MomentumRouletteState extends ConsumerState<MomentumRoulette> with Single
                   height: 220,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _getMomentumColor().withOpacity(0.15),
+                    color: _lockedTask != null
+                        ? _getMomentumColor().withOpacity(0.25)
+                        : _getMomentumColor().withOpacity(0.15),
                     border: Border.all(
-                      color: _getMomentumColor().withOpacity(0.5),
-                      width: 4,
+                      color: _getMomentumColor().withOpacity(_lockedTask != null ? 0.8 : 0.5),
+                      width: _lockedTask != null ? 5 : 4,
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -204,7 +192,29 @@ class _MomentumRouletteState extends ConsumerState<MomentumRoulette> with Single
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          if (!_isSpinning) ...[
+                          if (_lockedTask != null) ...[
+                            Icon(Icons.bolt, size: 28, color: _getMomentumColor()),
+                            const SizedBox(height: 8),
+                            Text(
+                              _lockedTask!,
+                              textAlign: TextAlign.center,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'tap to clear',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                              ),
+                            ),
+                          ] else if (!_isSpinning) ...[
                             Icon(Icons.bolt, size: 48, color: _getMomentumColor()),
                             const SizedBox(height: 8),
                             Text(
@@ -241,8 +251,8 @@ class _MomentumRouletteState extends ConsumerState<MomentumRoulette> with Single
         const SizedBox(height: 24),
         TextButton.icon(
            onPressed: _isSpinning ? null : _spinRoulette,
-           icon: const Icon(Icons.casino),
-           label: const Text("Pick for me"),
+           icon: Icon(_lockedTask != null ? Icons.refresh : Icons.casino),
+           label: Text(_lockedTask != null ? "Clear & Re-spin" : "Pick for me"),
            style: TextButton.styleFrom(
               foregroundColor: _getMomentumColor(),
            ),

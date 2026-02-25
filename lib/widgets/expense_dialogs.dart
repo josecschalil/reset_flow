@@ -6,8 +6,9 @@ import 'package:reset_flow/providers/expense_provider.dart';
 class AddExpenseDialog extends StatefulWidget {
   final ExpenseNotifier notifier;
   final Expense? initialExpense;
+  final String? initialCategoryId;
 
-  const AddExpenseDialog({super.key, required this.notifier, this.initialExpense});
+  const AddExpenseDialog({super.key, required this.notifier, this.initialExpense, this.initialCategoryId});
 
   @override
   State<AddExpenseDialog> createState() => _AddExpenseDialogState();
@@ -27,6 +28,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
       _labelController.text = widget.initialExpense!.label;
       _selectedDate = widget.initialExpense!.date;
       _selectedCategoryId = widget.initialExpense!.categoryId;
+    } else if (widget.initialCategoryId != null) {
+      _selectedCategoryId = widget.initialCategoryId;
     }
   }
 

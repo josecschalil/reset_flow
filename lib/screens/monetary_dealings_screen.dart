@@ -10,6 +10,7 @@ import 'package:reset_flow/providers/expense_provider.dart';
 import 'package:reset_flow/models/expense.dart';
 import 'package:reset_flow/widgets/expense_dialogs.dart';
 import 'package:reset_flow/screens/category_expense_detail_screen.dart';
+import 'package:reset_flow/widgets/daily_spend_chart.dart';
 
 class MonetaryDealingsScreen extends ConsumerStatefulWidget {
   const MonetaryDealingsScreen({super.key});
@@ -28,20 +29,42 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Finance'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Ledger'),
-              Tab(text: 'Expenses'),
+        backgroundColor: const Color(0xFFF0F0F8),
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+                child: Text('Finance',
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1A1A2E))),
+              ),
+              TabBar(
+                labelColor: const Color(0xFF5C35C2),
+                unselectedLabelColor: Colors.grey.shade500,
+                indicatorColor: const Color(0xFF5C35C2),
+                indicatorSize: TabBarIndicatorSize.label,
+                indicatorWeight: 3,
+                labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                dividerColor: Colors.grey.shade200,
+                tabs: const [
+                  Tab(text: 'Ledger'),
+                  Tab(text: 'Expenses'),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildLedgerView(state, notifier, colorScheme),
+                    _buildExpensesView(),
+                  ],
+                ),
+              ),
             ],
           ),
-        ),
-        body: TabBarView(
-          children: [
-            _buildLedgerView(state, notifier, colorScheme),
-            _buildExpensesView(),
-          ],
         ),
       ),
     );
@@ -67,19 +90,13 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
                 // 2. EMI & Liabilities Section
                 _buildEMISection(colorScheme),
 
-                // 3. People List Header
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-                    child: Text(
-                      'People',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
+                // 2. EMI & Liabilities Section
+                _buildEMISection(colorScheme),
 
-                // 4. People List
+                // 4. People List (header moved inside)
                 _buildPeopleList(state, notifier, colorScheme),
+                
+                const SliverToBoxAdapter(child: SizedBox(height: 32)),
               ],
             ),
           );
@@ -105,13 +122,24 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
             SliverToBoxAdapter(
               child: _buildExpenseActionCards(expenseNotifier, colorScheme),
             ),
+          // Daily spend chart for selected month
+          if (expenseState.selectedMonthExpenses.isNotEmpty)
+            SliverToBoxAdapter(
+              child: DailySpendChart(
+                expenses: expenseState.selectedMonthExpenses,
+                title: 'DAILY SPENDING THIS MONTH',
+              ),
+            ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
               child: Text(
-                'Spending by Category',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold, color: Colors.grey),
+                'SPENDING BY CATEGORY',
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45)),
               ),
             ),
           ),
@@ -123,25 +151,23 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
 
   Widget _buildActionCards(BuildContext context, MonetaryNotifier notifier, ColorScheme colorScheme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
           Expanded(
             child: _buildActionCard(
               context,
               'New Dealing',
-              Icons.add_circle_outline,
-              colorScheme.primary,
+              Icons.handshake,
               () => _showAddTransactionDialog(context, notifier),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: _buildActionCard(
               context,
               'Add EMI',
-              Icons.calendar_today_outlined,
-              colorScheme.secondary,
+              Icons.credit_card,
               () => _showAddEMIDialog(context),
             ),
           ),
@@ -150,28 +176,36 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
     );
   }
 
-  Widget _buildActionCard(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionCard(BuildContext context, String title, IconData icon, VoidCallback onTap) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: color.withOpacity(0.2)),
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Colors.grey.shade200),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Column(
             children: [
-              Icon(icon, color: color, size: 28),
-              const SizedBox(height: 8),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEDE9FB),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: const Color(0xFF5C35C2), size: 24),
+              ),
+              const SizedBox(height: 12),
               Text(
                 title,
-                style: TextStyle(
-                  color: color,
+                style: const TextStyle(
+                  color: Color(0xFF1A1A2E),
                   fontWeight: FontWeight.bold,
-                  fontSize: 13,
+                  fontSize: 14,
                 ),
               ),
             ],
@@ -190,19 +224,21 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-            child: Text(
-              'EMI & Liabilities',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.grey),
-            ),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+            child: Text('EMI & LIABILITIES',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                    color: Colors.grey.shade500)),
           ),
           ...emiState.plans.map((plan) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: colorScheme.outlineVariant.withOpacity(0.5)),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.shade200),
               ),
               child: _buildEMIPlanTile(context, plan, ref.read(monetaryProvider.notifier), ref),
             ),
@@ -292,58 +328,72 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
     double totalNet = net + emiRemainingAsset - emiRemainingLiability;
 
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(24, 24, 24, 16),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [colorScheme.primary, colorScheme.primaryContainer],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.primary.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        color: const Color(0xFF5C35C2),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Total Net Worth',
-            style: TextStyle(color: colorScheme.onPrimary.withOpacity(0.8), fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1),
+            'TOTAL NET WORTH',
+            style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2),
           ),
+          const SizedBox(height: 4),
           Text(
-            '₹${totalNet.toStringAsFixed(2)}',
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  color: colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
+            '₹${totalNet.toStringAsFixed(0)}',
+            style: const TextStyle(
+              fontSize: 36,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
           Text(
             'Current Cash: ₹${net.toStringAsFixed(2)}',
-            style: TextStyle(color: colorScheme.onPrimary.withOpacity(0.6), fontSize: 12),
+            style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
           ),
-          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Divider(color: Colors.white.withOpacity(0.15), height: 1),
+          ),
           Row(
             children: [
-              _buildSummaryItem(
-                'ASSETS', 
-                '₹${(credit + emiRemainingAsset).toStringAsFixed(0)}', 
-                Icons.arrow_upward, 
-                Colors.greenAccent,
-                colorScheme.onPrimary
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.arrow_upward, size: 14, color: Colors.greenAccent),
+                        const SizedBox(width: 4),
+                        Text('ASSETS', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text('₹${(credit + emiRemainingAsset).toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
-              Container(width: 1, height: 40, color: colorScheme.onPrimary.withOpacity(0.2)),
-              _buildSummaryItem(
-                'LIABILITIES', 
-                '₹${(debit + emiRemainingLiability).toStringAsFixed(0)}', 
-                Icons.arrow_downward, 
-                Colors.orangeAccent,
-                colorScheme.onPrimary
+              Container(width: 1, height: 40, color: Colors.white.withOpacity(0.15)),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.arrow_downward, size: 14, color: Colors.orangeAccent),
+                        const SizedBox(width: 4),
+                        Text('LIABILITIES', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text('₹${(debit + emiRemainingLiability).toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
             ],
           ),
@@ -372,109 +422,204 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
 
   Widget _buildPeopleList(MonetaryState state, MonetaryNotifier notifier, ColorScheme colorScheme) {
     final summary = notifier.personSummary;
+
+    // Header added here so we can include it safely
+    final header = SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+        child: Text('PEOPLE',
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2,
+                color: Colors.grey.shade500)),
+      ),
+    );
+
     if (summary.isEmpty) {
-      return const SliverFillRemaining(
-        child: Center(child: Text('No dealings yet. Use cards above to add.')),
-      );
+      return SliverMainAxisGroup(slivers: [
+        header,
+        SliverFillRemaining(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEDE9FB),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.people,
+                          color: Color(0xFF5C35C2), size: 32),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('No Dealings Yet',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1A1A2E))),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Use the action cards above\nto add your first dealing.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 13,
+                          height: 1.5),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ]);
     }
 
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          String person = summary.keys.elementAt(index);
-          double pCredit = summary[person]!['credit']!;
-          double pDebit = summary[person]!['debit']!;
+    return SliverMainAxisGroup(slivers: [
+      header,
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              String person = summary.keys.elementAt(index);
+              double pCredit = summary[person]!['credit']!;
+              double pDebit = summary[person]!['debit']!;
+              final isSettled = pCredit == 0 && pDebit == 0;
 
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: colorScheme.outlineVariant.withOpacity(0.5)),
-            ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              leading: CircleAvatar(
-                backgroundColor: colorScheme.secondaryContainer,
-                child: Text(person[0].toUpperCase(), style: TextStyle(color: colorScheme.onSecondaryContainer, fontWeight: FontWeight.bold)),
-              ),
-              title: Text(person, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              subtitle: (pCredit == 0 && pDebit == 0)
-                ? const Text(
-                    'FULLY SETTLED',
-                    style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5),
-                  )
-                : Wrap(
-                    spacing: 8,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.arrow_upward, size: 14, color: pCredit == 0 ? Colors.grey : Colors.green),
-                          Text(' ₹${pCredit.toStringAsFixed(0)} ', style: TextStyle(color: pCredit == 0 ? Colors.grey : Colors.green, fontWeight: FontWeight.w600)),
-                        ],
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFFEDE9FB),
+                    radius: 22,
+                    child: Text(person[0].toUpperCase(), style: const TextStyle(color: Color(0xFF5C35C2), fontWeight: FontWeight.bold, fontSize: 18)),
+                  ),
+                  title: Text(person, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1A1A2E))),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 6.0),
+                    child: isSettled
+                      ? Wrap(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F5E9),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text('FULLY SETTLED',
+                                  style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 0.5)),
+                            ),
+                          ],
+                        )
+                      : Wrap(
+                          spacing: 8,
+                          children: [
+                            if (pCredit > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE8F5E9),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.arrow_upward, size: 12, color: Color(0xFF2E7D32)),
+                                    const SizedBox(width: 4),
+                                    Text('₹${pCredit.toStringAsFixed(0)}', style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                            if (pDebit > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF3E0),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.arrow_downward, size: 12, color: Color(0xFFE65100)),
+                                    const SizedBox(width: 4),
+                                    Text('₹${pDebit.toStringAsFixed(0)}', style: const TextStyle(color: Color(0xFFE65100), fontWeight: FontWeight.bold, fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                  ),
+                  trailing: PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, color: Colors.grey.shade400),
+                    onSelected: (val) {
+                      if (val == 'lent') {
+                        _showAddTransactionDialog(context, notifier, initialPerson: person, initialType: TransactionType.credit);
+                      } else if (val == 'borrowed') {
+                        _showAddTransactionDialog(context, notifier, initialPerson: person, initialType: TransactionType.debit);
+                      } else if (val == 'delete') {
+                        _showDeletePersonConfirm(person, notifier);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'lent',
+                        child: Row(
+                          children: [
+                            Icon(Icons.add_circle_outline, color: Color(0xFF2E7D32), size: 20),
+                            SizedBox(width: 8),
+                            Text('Quick Lent'),
+                          ],
+                        ),
                       ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.arrow_downward, size: 14, color: pDebit == 0 ? Colors.grey : Colors.orange),
-                          Text(' ₹${pDebit.toStringAsFixed(0)} ', style: TextStyle(color: pDebit == 0 ? Colors.grey : Colors.orange, fontWeight: FontWeight.w600)),
-                        ],
+                      const PopupMenuItem(
+                        value: 'borrowed',
+                        child: Row(
+                          children: [
+                            Icon(Icons.remove_circle_outline, color: Color(0xFFE65100), size: 20),
+                            SizedBox(width: 8),
+                            Text('Quick Borrowed'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                            SizedBox(width: 8),
+                            Text('Delete Person', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-              trailing: PopupMenuButton<String>(
-                onSelected: (val) {
-                  if (val == 'lent') {
-                    _showAddTransactionDialog(context, notifier, initialPerson: person, initialType: TransactionType.credit);
-                  } else if (val == 'borrowed') {
-                    _showAddTransactionDialog(context, notifier, initialPerson: person, initialType: TransactionType.debit);
-                  } else if (val == 'delete') {
-                    _showDeletePersonConfirm(person, notifier);
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'lent',
-                    child: Row(
-                      children: [
-                        Icon(Icons.add_circle_outline, color: Colors.green, size: 20),
-                        SizedBox(width: 8),
-                        Text('Quick Lent'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'borrowed',
-                    child: Row(
-                      children: [
-                        Icon(Icons.remove_circle_outline, color: Colors.orange, size: 20),
-                        SizedBox(width: 8),
-                        Text('Quick Borrowed'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                        SizedBox(width: 8),
-                        Text('Delete Person', style: TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              onTap: () => _showPersonDetail(person),
-              onLongPress: () => _showDeletePersonConfirm(person, notifier),
-            ),
-          );
-        },
-        childCount: summary.length,
+                  onTap: () => _showPersonDetail(person),
+                  onLongPress: () => _showDeletePersonConfirm(person, notifier),
+                ),
+              );
+            },
+            childCount: summary.length,
+          ),
+        ),
       ),
-    );
+    ]);
   }
 
   void _showPersonDetail(String person) {
@@ -528,25 +673,17 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
     final canGoBack = state.availableMonths.any(
         (m) => m.isBefore(DateTime(sel.year, sel.month)));
 
+    double todayTotal = 0;
+    if (isCurrentMonth) {
+      final todayExpenses = state.selectedMonthExpenses.where((e) => e.date.year == now.year && e.date.month == now.month && e.date.day == now.day);
+      todayTotal = todayExpenses.fold(0.0, (sum, e) => sum + e.amount);
+    }
+
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(24, 24, 24, 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            colorScheme.primary.withOpacity(0.8),
-            colorScheme.primary,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.primary.withOpacity(0.2),
-            blurRadius: 25,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        color: const Color(0xFF5C35C2),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
@@ -625,6 +762,31 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
               '$txCount transaction${txCount == 1 ? '' : 's'} this month',
               style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
             ),
+            if (isCurrentMonth && todayTotal > 0) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.today, color: Colors.white, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Today: ₹${todayTotal.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -633,7 +795,7 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
 
   Widget _buildExpenseActionCards(ExpenseNotifier notifier, ColorScheme colorScheme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
           Expanded(
@@ -641,17 +803,15 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
               context,
               'Add Expense',
               Icons.receipt_long,
-              colorScheme.tertiary,
               () => _showAddExpenseDialog(context, notifier),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: _buildActionCard(
               context,
               'Categories',
               Icons.category_outlined,
-              colorScheme.secondary,
               () => _showManageCategoriesDialog(context, notifier),
             ),
           ),
@@ -662,8 +822,10 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
 
   Widget _buildExpenseGrid(ExpenseState state, ExpenseNotifier notifier, ColorScheme colorScheme) {
     if (state.categories.isEmpty) {
-      return const SliverFillRemaining(
-        child: Center(child: Text('No categories found.')),
+      return SliverFillRemaining(
+        child: Center(
+          child: Text('No categories found.', style: TextStyle(color: Colors.grey.shade500)),
+        ),
       );
     }
 
@@ -671,13 +833,13 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
     final totalMonthly = monthExpenses.fold(0.0, (sum, e) => sum + e.amount);
 
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.0,
+          mainAxisSpacing: 14,
+          crossAxisSpacing: 14,
+          childAspectRatio: 0.95,
         ),
         delegate: SliverChildBuilderDelegate(
           (context, index) {
@@ -698,7 +860,6 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
   }
 
   Widget _buildCategoryCard(ExpenseCategory category, double total, int count, double share) {
-    final colorScheme = Theme.of(context).colorScheme;
     final categoryColor = Color(category.colorValue);
 
     return GestureDetector(
@@ -711,99 +872,79 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
         );
       },
       child: Container(
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: categoryColor.withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: categoryColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    IconData(category.iconCodePoint, fontFamily: 'MaterialIcons'),
+                    color: categoryColor,
+                    size: 22,
+                  ),
+                ),
+                if (share > 0)
+                  Text(
+                    '${(share * 100).toStringAsFixed(0)}%',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: categoryColor,
+                    ),
+                  )
+                else
+                  Text(
+                    '0%',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              category.name,
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: const Color(0xFF1A1A2E)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '₹${total.toStringAsFixed(0)}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: total > 0 ? const Color(0xFF1A1A2E) : Colors.grey.shade400,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: share > 0 ? share : 0,
+                backgroundColor: Colors.grey.shade100,
+                valueColor: AlwaysStoppedAnimation<Color>(categoryColor),
+                minHeight: 4,
+              ),
             ),
           ],
-          border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.5)),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -20,
-                bottom: -20,
-                child: Icon(
-                  IconData(category.iconCodePoint, fontFamily: 'MaterialIcons'),
-                  size: 100,
-                  color: categoryColor.withOpacity(0.05),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: categoryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            IconData(category.iconCodePoint, fontFamily: 'MaterialIcons'),
-                            color: categoryColor,
-                            size: 20,
-                          ),
-                        ),
-                        if (share > 0)
-                          Text(
-                            '${(share * 100).toStringAsFixed(0)}%',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: categoryColor.withOpacity(0.5),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Text(
-                      category.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '₹${total.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 20,
-                        color: total > 0 ? colorScheme.onSurface : Colors.grey.shade400,
-                      ),
-                    ),
-                    if (total > 0) ...[
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: LinearProgressIndicator(
-                          value: share,
-                          backgroundColor: categoryColor.withOpacity(0.1),
-                          valueColor: AlwaysStoppedAnimation<Color>(categoryColor.withOpacity(0.4)),
-                          minHeight: 4,
-                        ),
-                      ),
-                    ] else
-                      Text(
-                        '$count expenses',
-                        style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
