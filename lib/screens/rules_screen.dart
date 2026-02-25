@@ -144,82 +144,145 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: ExpansionTile(
-          tilePadding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-          title: Text(
-            rule.title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Color(0xFF1A1A2E),
-            ),
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 4.0),
-            child: Text(
-              '${rule.solutions.length} response${rule.solutions.length != 1 ? 's' : ''}',
-              style: TextStyle(
-                  color: Colors.grey.shade500, fontSize: 13),
-            ),
-          ),
-          leading: Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEDE9FB),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.shield, color: _brand, size: 20),
-          ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Divider(height: 1),
-            const SizedBox(height: 16),
-            ...rule.solutions.map((sol) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
+            // ─ Problem header row
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDE9FB),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: const Icon(Icons.help_outline_rounded,
+                      color: _brand, size: 19),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        margin: const EdgeInsets.only(top: 8, right: 12),
-                        decoration: const BoxDecoration(
-                          color: Colors.blue, 
-                          shape: BoxShape.circle,
+                      Text(
+                        rule.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF1A1A2E),
+                          height: 1.3,
                         ),
                       ),
-                      Expanded(
-                        child: Text(sol,
-                            style: const TextStyle(
-                                fontSize: 15,
-                                height: 1.5,
-                                color: Color(0xFF1A1A2E))),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${rule.solutions.length} response${rule.solutions.length != 1 ? 's' : ''}',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade400,
+                            fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
-                )),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit,
-                      size: 20, color: Color(0xFF1A1A2E)),
-                  onPressed: () => _showAddEditDialog(context, rule),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete,
-                      size: 20, color: Colors.red),
-                  onPressed: () =>
-                      ref.read(ruleProvider.notifier).deleteRule(rule.id),
+                // 3-dot menu
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade400),
+                  padding: EdgeInsets.zero,
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _showAddEditDialog(context, rule);
+                    } else if (value == 'delete') {
+                      ref.read(ruleProvider.notifier).deleteRule(rule.id);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(children: [
+                        Icon(Icons.edit_outlined, size: 18),
+                        SizedBox(width: 8),
+                        Text('Edit'),
+                      ]),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(children: [
+                        Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                        const SizedBox(width: 8),
+                        Text('Delete', style: TextStyle(color: Colors.red)),
+                      ]),
+                    ),
+                  ],
                 ),
               ],
             ),
+
+            // ─ Divider
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Divider(
+                height: 1,
+                thickness: 1,
+                color: Colors.grey.shade100,
+              ),
+            ),
+
+            // ─ Solution bullet points
+            ...rule.solutions.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final sol = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Numbered dot
+                    Container(
+                      width: 22,
+                      height: 22,
+                      margin: const EdgeInsets.only(right: 12, top: 1),
+                      decoration: BoxDecoration(
+                        color: _brand.withOpacity(0.10),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${idx + 1}',
+                          style: const TextStyle(
+                            color: _brand,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        sol,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.55,
+                          color: Color(0xFF2D2D2D),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
           ],
         ),
       ),

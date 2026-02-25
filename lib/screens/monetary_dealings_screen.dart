@@ -331,7 +331,7 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
       margin: const EdgeInsets.fromLTRB(24, 24, 24, 16),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF5C35C2),
+        color: const Color(0xFF7B5ED6),
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -682,7 +682,7 @@ class _MonetaryDealingsScreenState extends ConsumerState<MonetaryDealingsScreen>
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 24, 24, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF5C35C2),
+        color: const Color(0xFF7B5ED6),
         borderRadius: BorderRadius.circular(24),
       ),
       child: Padding(
