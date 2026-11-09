@@ -1,11 +1,11 @@
 name: reset_flow
 description: "A Flutter application to manage daily goals with an advanced dashboard."
-publish_to: 'none'
+publish_to: "none"
 
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.0 <4.0.0'
+  sdk: ">=3.2.0 <4.0.0"
 
 dependencies:
   flutter:

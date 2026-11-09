@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:reset_flow/models/expense.dart';
 
 /// A line chart that plots daily total spending over the given [expenses].
-/// Pass [color] to tint the line for per-category screens.
+/// Defaults to the Ink Navy brand theme matching the Finance & Cash Requirements screens.
 class DailySpendChart extends StatelessWidget {
   final List<Expense> expenses;
   final Color color;
@@ -13,19 +13,36 @@ class DailySpendChart extends StatelessWidget {
   const DailySpendChart({
     super.key,
     required this.expenses,
-    this.color = const Color(0xFF5C35C2),
+    this.color = const Color(0xFF1E3A5F), // Ink Navy brand accent
     this.title = 'DAILY SPENDING',
   });
 
+  // ── Palette Tokens: Clean white surfaces + Ink Navy & Slate Accents ──
+  static const Color _border = Color(0xFFDFE3E9);
+  static const Color _gridLine = Color(0xFFF1F5F9);
+  static const Color _textMuted = Color(0xFF64748B);
+  static const Color _textSubtle = Color(0xFF8892A0);
+
+  static const List<BoxShadow> _cardShadow = [
+    BoxShadow(
+      color: Color(0x0A14202E),
+      blurRadius: 14,
+      offset: Offset(0, 4),
+    ),
+    BoxShadow(
+      color: Color(0x0614202E),
+      blurRadius: 2,
+      offset: Offset(0, 1),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     // Aggregate spending per day
     final Map<String, double> dailyTotals = {};
     for (final e in expenses) {
       final key = DateFormat('yyyy-MM-dd').format(e.date);
-      dailyTotals[key] = (dailyTotals[key] ?? 0) + e.amount;
+      dailyTotals[key] = (dailyTotals[key] ?? 0.0) + e.amount;
     }
 
     if (dailyTotals.isEmpty) return const SizedBox.shrink();
@@ -33,41 +50,85 @@ class DailySpendChart extends StatelessWidget {
     // Sort dates
     final sortedKeys = dailyTotals.keys.toList()..sort();
     final spots = <FlSpot>[];
+    double totalSpent = 0.0;
     for (int i = 0; i < sortedKeys.length; i++) {
-      spots.add(FlSpot(i.toDouble(), dailyTotals[sortedKeys[i]]!));
+      final amt = dailyTotals[sortedKeys[i]]!;
+      spots.add(FlSpot(i.toDouble(), amt));
+      totalSpent += amt;
     }
 
+    final avgDaily =
+        sortedKeys.isNotEmpty ? totalSpent / sortedKeys.length : 0.0;
     final maxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
-    final labelColor = cs.onSurface.withOpacity(0.45);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-      padding: const EdgeInsets.fromLTRB(16, 20, 20, 12),
+      padding: const EdgeInsets.fromLTRB(18, 18, 20, 14),
       decoration: BoxDecoration(
-        color: cs.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: cs.outline.withOpacity(0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: _border),
+        boxShadow: _cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
-              color: labelColor,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        Icons.show_chart_rounded,
+                        size: 13,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.1,
+                          color: _textMuted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F9FB),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _border),
+                ),
+                child: Text(
+                  'Avg ₹${avgDaily.toStringAsFixed(0)} / day',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: _textMuted,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           SizedBox(
             height: 140,
             child: LineChart(
@@ -81,8 +142,8 @@ class DailySpendChart extends StatelessWidget {
                   show: true,
                   drawVerticalLine: false,
                   horizontalInterval: maxY > 0 ? (maxY / 3) : 1,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: cs.outline.withOpacity(0.08),
+                  getDrawingHorizontalLine: (value) => const FlLine(
+                    color: _gridLine,
                     strokeWidth: 1,
                   ),
                 ),
@@ -97,21 +158,29 @@ class DailySpendChart extends StatelessWidget {
                         if (value == 0) return const SizedBox.shrink();
                         return Text(
                           '₹${value.toInt()}',
-                          style: TextStyle(fontSize: 9, color: labelColor),
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w600,
+                            color: _textSubtle,
+                          ),
                         );
                       },
                     ),
                   ),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 20,
                       getTitlesWidget: (value, meta) {
                         final idx = value.toInt();
-                        // show label roughly every N ticks to avoid crowding
-                        final step = (spots.length / 5).ceil().clamp(1, 9999);
+                        final step =
+                            (spots.length / 5).ceil().clamp(1, 9999);
                         if (idx % step != 0 && idx != spots.length - 1) {
                           return const SizedBox.shrink();
                         }
@@ -121,7 +190,11 @@ class DailySpendChart extends StatelessWidget {
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
                               DateFormat('d MMM').format(d),
-                              style: TextStyle(fontSize: 9, color: labelColor),
+                              style: const TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600,
+                                color: _textSubtle,
+                              ),
                             ),
                           );
                         }
@@ -141,10 +214,10 @@ class DailySpendChart extends StatelessWidget {
                       show: spots.length <= 15,
                       getDotPainter: (spot, percent, bar, index) =>
                           FlDotCirclePainter(
-                        radius: 3,
+                        radius: 3.5,
                         color: color,
-                        strokeWidth: 1.5,
-                        strokeColor: cs.surface,
+                        strokeWidth: 2,
+                        strokeColor: Colors.white,
                       ),
                     ),
                     belowBarData: BarAreaData(
@@ -153,8 +226,8 @@ class DailySpendChart extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          color.withOpacity(0.18),
-                          color.withOpacity(0.0),
+                          color.withValues(alpha: 0.16),
+                          color.withValues(alpha: 0.0),
                         ],
                       ),
                     ),
@@ -162,18 +235,31 @@ class DailySpendChart extends StatelessWidget {
                 ],
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => cs.surface,
-                    tooltipBorder: BorderSide(color: cs.outline.withOpacity(0.1)),
+                    getTooltipColor: (_) => Colors.white,
+                    tooltipBorder: const BorderSide(color: _border),
+                    tooltipRoundedRadius: 10,
+                    tooltipPadding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
                     getTooltipItems: (touchedSpots) {
                       return touchedSpots.map((s) {
                         final d = DateTime.parse(sortedKeys[s.x.toInt()]);
                         return LineTooltipItem(
-                          '${DateFormat('d MMM').format(d)}\n₹${s.y.toStringAsFixed(0)}',
-                          TextStyle(
-                            color: color,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                          '${DateFormat('d MMM').format(d)}\n',
+                          const TextStyle(
+                            color: _textMuted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
                           ),
+                          children: [
+                            TextSpan(
+                              text: '₹${s.y.toStringAsFixed(0)}',
+                              style: TextStyle(
+                                color: color,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         );
                       }).toList();
                     },

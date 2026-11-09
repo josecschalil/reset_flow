@@ -7,6 +7,7 @@ import 'package:reset_flow/models/due.dart';
 import 'package:reset_flow/models/financial_transaction.dart';
 import 'package:reset_flow/models/expense.dart';
 import 'package:reset_flow/models/focus_session.dart';
+import 'package:reset_flow/models/account_balance.dart';
 import 'package:flutter/material.dart';
 
 class DatabaseHelper {
@@ -27,23 +28,27 @@ class DatabaseHelper {
 
     final db = await openDatabase(
       path,
-      version: 10,
+      version: 11,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
 
     // Double check column existence (failsafe for interrupted migrations)
-    final ftTables = await db.rawQuery("PRAGMA table_info(financial_transactions)");
+    final ftTables =
+        await db.rawQuery("PRAGMA table_info(financial_transactions)");
     if (!ftTables.any((column) => column['name'] == 'parentId')) {
-      await db.execute('ALTER TABLE financial_transactions ADD COLUMN parentId TEXT');
+      await db.execute(
+          'ALTER TABLE financial_transactions ADD COLUMN parentId TEXT');
     }
 
     final goalTables = await db.rawQuery("PRAGMA table_info(goals)");
     if (!goalTables.any((column) => column['name'] == 'orderIndex')) {
-      await db.execute('ALTER TABLE goals ADD COLUMN orderIndex INTEGER DEFAULT 0');
+      await db
+          .execute('ALTER TABLE goals ADD COLUMN orderIndex INTEGER DEFAULT 0');
     }
     if (!goalTables.any((column) => column['name'] == 'isOneTime')) {
-      await db.execute('ALTER TABLE goals ADD COLUMN isOneTime INTEGER DEFAULT 0');
+      await db
+          .execute('ALTER TABLE goals ADD COLUMN isOneTime INTEGER DEFAULT 0');
     }
 
     // Failsafe: create focus_sessions table if not exists (e.g., skipped migration)
@@ -54,6 +59,14 @@ class DatabaseHelper {
         durationMinutes INTEGER NOT NULL,
         status TEXT NOT NULL,
         rating INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS account_balances (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        balance REAL NOT NULL
       )
     ''');
 
@@ -96,7 +109,8 @@ class DatabaseHelper {
     }
 
     if (oldVersion < 5) {
-      await db.execute('ALTER TABLE financial_transactions ADD COLUMN parentId TEXT');
+      await db.execute(
+          'ALTER TABLE financial_transactions ADD COLUMN parentId TEXT');
     }
 
     if (oldVersion < 6) {
@@ -153,19 +167,30 @@ class DatabaseHelper {
         ['Rent', Icons.home.codePoint, Colors.blue.value],
         ['Travel', Icons.flight.codePoint, Colors.green.value],
         ['Health', Icons.medical_services.codePoint, Colors.red.value],
-        ['Entertainment', Icons.movie.codePoint, Colors.purple.value],
+        ['Entertainment', Icons.movie.codePoint, Colors.blueGrey.value],
         ['Shopping', Icons.shopping_bag.codePoint, Colors.pink.value],
         ['Others', Icons.more_horiz.codePoint, Colors.grey.value],
       ];
 
       for (var cat in defaultCategories) {
         await db.insert('expense_categories', {
-          'id': DateTime.now().millisecondsSinceEpoch.toString() + cat[0].toString(),
+          'id': DateTime.now().millisecondsSinceEpoch.toString() +
+              cat[0].toString(),
           'name': cat[0],
           'iconCodePoint': cat[1],
           'colorValue': cat[2],
         });
       }
+    }
+
+    if (oldVersion < 11) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS account_balances (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          balance REAL NOT NULL
+        )
+      ''');
     }
   }
 
@@ -277,14 +302,15 @@ class DatabaseHelper {
       ['Rent', Icons.home.codePoint, Colors.blue.value],
       ['Travel', Icons.flight.codePoint, Colors.green.value],
       ['Health', Icons.medical_services.codePoint, Colors.red.value],
-      ['Entertainment', Icons.movie.codePoint, Colors.purple.value],
+      ['Entertainment', Icons.movie.codePoint, Colors.blueGrey.value],
       ['Shopping', Icons.shopping_bag.codePoint, Colors.pink.value],
       ['Others', Icons.more_horiz.codePoint, Colors.grey.value],
     ];
 
     for (var cat in defaultCategories) {
       await db.insert('expense_categories', {
-        'id': DateTime.now().millisecondsSinceEpoch.toString() + cat[0].toString(),
+        'id': DateTime.now().millisecondsSinceEpoch.toString() +
+            cat[0].toString(),
         'name': cat[0],
         'iconCodePoint': cat[1],
         'colorValue': cat[2],
@@ -299,6 +325,14 @@ class DatabaseHelper {
         durationMinutes INTEGER NOT NULL,
         status TEXT NOT NULL,
         rating INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE account_balances (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        balance REAL NOT NULL
       )
     ''');
   }
@@ -330,10 +364,34 @@ class DatabaseHelper {
     return await db.delete('goals', where: 'id = ?', whereArgs: [id]);
   }
 
+  // --- ACCOUNT BALANCES CRUD ---
+  Future<List<AccountBalance>> getAccountBalances() async {
+    final db = await instance.database;
+    final maps = await db.query('account_balances', orderBy: 'name ASC');
+    return maps.map((map) => AccountBalance.fromMap(map)).toList();
+  }
+
+  Future<int> insertAccountBalance(AccountBalance account) async {
+    final db = await instance.database;
+    return db.insert('account_balances', account.toMap());
+  }
+
+  Future<int> updateAccountBalance(AccountBalance account) async {
+    final db = await instance.database;
+    return db.update('account_balances', account.toMap(),
+        where: 'id = ?', whereArgs: [account.id]);
+  }
+
+  Future<int> deleteAccountBalance(String id) async {
+    final db = await instance.database;
+    return db.delete('account_balances', where: 'id = ?', whereArgs: [id]);
+  }
+
   // --- DAILY LOG CRUD ---
   Future<int> insertLog(DailyLog log) async {
     final db = await instance.database;
-    return await db.insert('daily_logs', log.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    return await db.insert('daily_logs', log.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<DailyLog>> getLogsByDate(String date) async {
@@ -346,7 +404,8 @@ class DatabaseHelper {
     return maps.map((map) => DailyLog.fromMap(map)).toList();
   }
 
-  Future<int> updateLogStatus(String id, String status, DateTime? completedAt) async {
+  Future<int> updateLogStatus(
+      String id, String status, DateTime? completedAt) async {
     final db = await instance.database;
     return await db.update(
       'daily_logs',
@@ -358,7 +417,7 @@ class DatabaseHelper {
       whereArgs: [id],
     );
   }
-  
+
   Future<List<DailyLog>> getLogsForGoal(String goalId) async {
     final db = await instance.database;
     final maps = await db.query(
@@ -381,7 +440,8 @@ class DatabaseHelper {
   // --- RULES CRUD ---
   Future<int> insertRule(AppRule rule) async {
     final db = await instance.database;
-    return await db.insert('rules', rule.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    return await db.insert('rules', rule.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<AppRule>> getAllRules() async {
@@ -392,7 +452,8 @@ class DatabaseHelper {
 
   Future<int> updateRule(AppRule rule) async {
     final db = await instance.database;
-    return await db.update('rules', rule.toMap(), where: 'id = ?', whereArgs: [rule.id]);
+    return await db
+        .update('rules', rule.toMap(), where: 'id = ?', whereArgs: [rule.id]);
   }
 
   Future<int> deleteRule(String id) async {
@@ -403,18 +464,21 @@ class DatabaseHelper {
   // --- DUES CRUD ---
   Future<int> insertDue(Due due) async {
     final db = await instance.database;
-    return await db.insert('dues', due.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    return await db.insert('dues', due.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<Due>> getAllDues() async {
     final db = await instance.database;
-    final maps = await db.query('dues', orderBy: 'deadline ASC'); // Sorted by deadline
+    final maps =
+        await db.query('dues', orderBy: 'deadline ASC'); // Sorted by deadline
     return maps.map((map) => Due.fromMap(map)).toList();
   }
 
   Future<int> updateDue(Due due) async {
     final db = await instance.database;
-    return await db.update('dues', due.toMap(), where: 'id = ?', whereArgs: [due.id]);
+    return await db
+        .update('dues', due.toMap(), where: 'id = ?', whereArgs: [due.id]);
   }
 
   Future<int> deleteDue(String id) async {
@@ -426,11 +490,14 @@ class DatabaseHelper {
   Future<int> insertTransaction(FinancialTransaction tx) async {
     final db = await instance.database;
     try {
-      return await db.insert('financial_transactions', tx.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+      return await db.insert('financial_transactions', tx.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace);
     } catch (e) {
       if (e.toString().contains('no column named parentId')) {
-        await db.execute('ALTER TABLE financial_transactions ADD COLUMN parentId TEXT');
-        return await db.insert('financial_transactions', tx.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+        await db.execute(
+            'ALTER TABLE financial_transactions ADD COLUMN parentId TEXT');
+        return await db.insert('financial_transactions', tx.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace);
       }
       rethrow;
     }
@@ -444,12 +511,14 @@ class DatabaseHelper {
 
   Future<int> deleteTransaction(String id) async {
     final db = await instance.database;
-    return await db.delete('financial_transactions', where: 'id = ?', whereArgs: [id]);
+    return await db
+        .delete('financial_transactions', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<int> deleteTransactionsForPerson(String personName) async {
     final db = await instance.database;
-    return await db.delete('financial_transactions', where: 'personName = ?', whereArgs: [personName]);
+    return await db.delete('financial_transactions',
+        where: 'personName = ?', whereArgs: [personName]);
   }
 
   // --- EMI CRUD ---
@@ -468,14 +537,29 @@ class DatabaseHelper {
     return await db.query('emi_plans');
   }
 
-  Future<List<Map<String, dynamic>>> getInstallmentsForPlan(String planId) async {
+  Future<List<Map<String, dynamic>>> getInstallmentsForPlan(
+      String planId) async {
     final db = await instance.database;
-    return await db.query('emi_installments', where: 'planId = ?', whereArgs: [planId], orderBy: 'dueDate ASC');
+    return await db.query('emi_installments',
+        where: 'planId = ?', whereArgs: [planId], orderBy: 'dueDate ASC');
   }
 
   Future<int> updateEMIInstallment(Map<String, dynamic> installment) async {
     final db = await instance.database;
-    return await db.update('emi_installments', installment, where: 'id = ?', whereArgs: [installment['id']]);
+    return await db.update('emi_installments', installment,
+        where: 'id = ?', whereArgs: [installment['id']]);
+  }
+
+  Future<int> deleteEMIInstallment(String id) async {
+    final db = await instance.database;
+    return await db
+        .delete('emi_installments', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> updateEMIPlan(Map<String, dynamic> plan) async {
+    final db = await instance.database;
+    return await db
+        .update('emi_plans', plan, where: 'id = ?', whereArgs: [plan['id']]);
   }
 
   Future<int> deleteEMIPlan(String id) async {
@@ -487,7 +571,8 @@ class DatabaseHelper {
   // --- EXPENSE CATEGORIES CRUD ---
   Future<int> insertExpenseCategory(ExpenseCategory category) async {
     final db = await instance.database;
-    return await db.insert('expense_categories', category.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    return await db.insert('expense_categories', category.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<ExpenseCategory>> getAllExpenseCategories() async {
@@ -498,18 +583,21 @@ class DatabaseHelper {
 
   Future<int> updateExpenseCategory(ExpenseCategory category) async {
     final db = await instance.database;
-    return await db.update('expense_categories', category.toMap(), where: 'id = ?', whereArgs: [category.id]);
+    return await db.update('expense_categories', category.toMap(),
+        where: 'id = ?', whereArgs: [category.id]);
   }
 
   Future<int> deleteExpenseCategory(String id) async {
     final db = await instance.database;
-    return await db.delete('expense_categories', where: 'id = ?', whereArgs: [id]);
+    return await db
+        .delete('expense_categories', where: 'id = ?', whereArgs: [id]);
   }
 
   // --- EXPENSES CRUD ---
   Future<int> insertExpense(Expense expense) async {
     final db = await instance.database;
-    return await db.insert('expenses', expense.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    return await db.insert('expenses', expense.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<Expense>> getAllExpenses() async {
@@ -520,7 +608,8 @@ class DatabaseHelper {
 
   Future<int> updateExpense(Expense expense) async {
     final db = await instance.database;
-    return await db.update('expenses', expense.toMap(), where: 'id = ?', whereArgs: [expense.id]);
+    return await db.update('expenses', expense.toMap(),
+        where: 'id = ?', whereArgs: [expense.id]);
   }
 
   Future<int> deleteExpense(String id) async {
@@ -531,7 +620,8 @@ class DatabaseHelper {
   // --- FOCUS SESSIONS (CONSTELLATIONS) ---
   Future<void> insertFocusSession(FocusSession session) async {
     final db = await instance.database;
-    await db.insert('focus_sessions', session.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('focus_sessions', session.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<FocusSession>> getAllFocusSessions() async {
@@ -543,7 +633,8 @@ class DatabaseHelper {
   /// Delete all sessions for a given year+month
   Future<int> deleteFocusSessionsByMonth(int year, int month) async {
     final db = await instance.database;
-    final prefix = '${year.toString().padLeft(4,'0')}-${month.toString().padLeft(2,'0')}';
+    final prefix =
+        '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}';
     return await db.delete(
       'focus_sessions',
       where: "startTime LIKE ?",

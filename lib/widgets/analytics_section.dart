@@ -38,8 +38,8 @@ class _AnalyticsSectionState extends ConsumerState<AnalyticsSection> {
     final int dayCount = _computeDayCount(allLogs, today);
 
     // ── Per-day success rates (for chart) ───────────────────
-    final List<_DayRate> dailyRates = _buildDailyRates(
-        allLogs, today, dayCount, formatter);
+    final List<_DayRate> dailyRates =
+        _buildDailyRates(allLogs, today, dayCount, formatter);
 
     // ── Day-of-week averages ─────────────────────────────────
     final dowRates = _buildDowRates(allLogs, formatter);
@@ -48,10 +48,8 @@ class _AnalyticsSectionState extends ConsumerState<AnalyticsSection> {
     final historyDays = _buildHistoryDays(allLogs, goals, formatter);
 
     // ── Overall stats ────────────────────────────────────────
-    final totalCompleted =
-        allLogs.where((l) => l.status == 'completed').length;
-    final totalResolved =
-        allLogs.where((l) => l.status != 'pending').length;
+    final totalCompleted = allLogs.where((l) => l.status == 'completed').length;
+    final totalResolved = allLogs.where((l) => l.status != 'pending').length;
     final overallPct =
         totalResolved == 0 ? 0.0 : (totalCompleted / totalResolved) * 100;
 
@@ -68,8 +66,7 @@ class _AnalyticsSectionState extends ConsumerState<AnalyticsSection> {
         const SizedBox(height: 16),
 
         // ── Performance chart ──
-        _PerformanceChart(
-            dailyRates: dailyRates, colorScheme: colorScheme),
+        _PerformanceChart(dailyRates: dailyRates, colorScheme: colorScheme),
 
         const SizedBox(height: 16),
 
@@ -98,17 +95,16 @@ class _AnalyticsSectionState extends ConsumerState<AnalyticsSection> {
     if (logs.isEmpty) return 30;
     final formatter = DateFormat('yyyy-MM-dd');
     try {
-      final earliest = logs
-          .map((l) => l.date)
-          .reduce((a, b) => a.compareTo(b) < 0 ? a : b);
+      final earliest =
+          logs.map((l) => l.date).reduce((a, b) => a.compareTo(b) < 0 ? a : b);
       return today.difference(formatter.parse(earliest)).inDays + 1;
     } catch (_) {
       return 30;
     }
   }
 
-  List<_DayRate> _buildDailyRates(List<DailyLog> logs, DateTime today,
-      int dayCount, DateFormat fmt) {
+  List<_DayRate> _buildDailyRates(
+      List<DailyLog> logs, DateTime today, int dayCount, DateFormat fmt) {
     final rates = <_DayRate>[];
     for (int i = dayCount - 1; i >= 0; i--) {
       final day = today.subtract(Duration(days: i));
@@ -117,10 +113,8 @@ class _AnalyticsSectionState extends ConsumerState<AnalyticsSection> {
       if (dayLogs.isEmpty) {
         rates.add(_DayRate(day: day, rate: null));
       } else {
-        final completed =
-            dayLogs.where((l) => l.status == 'completed').length;
-        rates.add(
-            _DayRate(day: day, rate: (completed / dayLogs.length) * 100));
+        final completed = dayLogs.where((l) => l.status == 'completed').length;
+        rates.add(_DayRate(day: day, rate: (completed / dayLogs.length) * 100));
       }
     }
     return rates;
@@ -150,8 +144,7 @@ class _AnalyticsSectionState extends ConsumerState<AnalyticsSection> {
     }
 
     // Sort dates descending (newest first)
-    final sortedDates = byDate.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
+    final sortedDates = byDate.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return sortedDates.map((dateStr) {
       final dayLogs = byDate[dateStr]!;
@@ -174,8 +167,7 @@ class _AnalyticsSectionState extends ConsumerState<AnalyticsSection> {
         );
       }).toList();
 
-      final completed =
-          dayLogs.where((l) => l.status == 'completed').length;
+      final completed = dayLogs.where((l) => l.status == 'completed').length;
       final total = dayLogs.length;
       final rate = total == 0 ? 0.0 : completed / total;
 
@@ -234,8 +226,7 @@ class _SectionHeader extends StatelessWidget {
             ),
           ],
         ),
-        _PeriodSelector(
-            selected: selectedDays, onChanged: onPeriodChanged),
+        _PeriodSelector(selected: selectedDays, onChanged: onPeriodChanged),
       ],
     );
   }
@@ -248,8 +239,7 @@ class _PeriodSelector extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onChanged;
 
-  const _PeriodSelector(
-      {required this.selected, required this.onChanged});
+  const _PeriodSelector({required this.selected, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -273,12 +263,9 @@ class _PeriodSelector extends StatelessWidget {
             onTap: () => onChanged(opt.value),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? colorScheme.primary
-                    : Colors.transparent,
+                color: isSelected ? colorScheme.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
@@ -401,10 +388,10 @@ class _PerformanceChart extends StatelessWidget {
               },
             ),
           ),
-          topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         borderData: FlBorderData(show: false),
         lineBarsData: [
@@ -469,8 +456,7 @@ class _DowHeatmap extends StatelessWidget {
   final List<double> dowRates;
   final ColorScheme colorScheme;
 
-  const _DowHeatmap(
-      {required this.dowRates, required this.colorScheme});
+  const _DowHeatmap({required this.dowRates, required this.colorScheme});
 
   @override
   Widget build(BuildContext context) {
@@ -495,8 +481,7 @@ class _DowHeatmap extends StatelessWidget {
               final barColor = isBest
                   ? colorScheme.primary
                   : colorScheme.primary.withOpacity(0.3);
-              final barHeight =
-                  rate == 0 ? 4.0 : (rate / 100) * 64 + 4;
+              final barHeight = rate == 0 ? 4.0 : (rate / 100) * 64 + 4;
               return Column(
                 children: [
                   if (isBest)
@@ -525,8 +510,7 @@ class _DowHeatmap extends StatelessWidget {
                     days[i],
                     style: TextStyle(
                       fontSize: 10,
-                      fontWeight:
-                          isBest ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isBest ? FontWeight.bold : FontWeight.normal,
                       color: isBest
                           ? colorScheme.primary
                           : colorScheme.onSurface.withOpacity(0.5),
@@ -560,7 +544,7 @@ class _GoalBreakdown extends ConsumerWidget {
     Color(0xFF1565C0),
     Color(0xFF2E7D32),
     Color(0xFFE65100),
-    Color(0xFF6A1B9A),
+    Color(0xFF1F6F78),
     Color(0xFF00838F),
     Color(0xFFC62828),
   ];
@@ -586,15 +570,14 @@ class _GoalBreakdown extends ConsumerWidget {
           ...activeGoals.asMap().entries.map((entry) {
             final idx = entry.key;
             final goal = entry.value;
-            final goalLogs =
-                allLogs.where((l) => l.goalId == goal.id).toList();
+            final goalLogs = allLogs.where((l) => l.goalId == goal.id).toList();
             final resolved =
                 goalLogs.where((l) => l.status != 'pending').length;
             final completed =
                 goalLogs.where((l) => l.status == 'completed').length;
             final rate = resolved == 0 ? 0.0 : completed / resolved;
-            final streak = StreakCalculator.calculateCurrentStreak(
-                goal, goalLogs);
+            final streak =
+                StreakCalculator.calculateCurrentStreak(goal, goalLogs);
             final color = _colors[idx % _colors.length];
 
             return Padding(
@@ -613,140 +596,145 @@ class _GoalBreakdown extends ConsumerWidget {
                 ),
                 confirmDismiss: (direction) async {
                   return await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Delete Goal?'),
-                      content: Text('Are you sure you want to delete "${goal.title}"? This cannot be undone.'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Cancel'),
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Delete Goal?'),
+                          content: Text(
+                              'Are you sure you want to delete "${goal.title}"? This cannot be undone.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel'),
+                            ),
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                  backgroundColor: colorScheme.error),
+                              onPressed: () {
+                                ref
+                                    .read(goalProvider.notifier)
+                                    .deleteGoal(goal.id);
+                                Navigator.pop(context, true);
+                              },
+                              child: const Text('Delete'),
+                            ),
+                          ],
                         ),
-                        FilledButton(
-                          style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
-                          onPressed: () {
-                            ref.read(goalProvider.notifier).deleteGoal(goal.id);
-                            Navigator.pop(context, true);
-                          },
-                          child: const Text('Delete'),
-                        ),
-                      ],
-                    ),
-                  ) ?? false;
+                      ) ??
+                      false;
                 },
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: colorScheme.outline.withOpacity(0.08)),
+                    border: Border.all(
+                        color: colorScheme.outline.withOpacity(0.08)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    goal.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  Text(
-                                    goal.isOneTime
-                                        ? 'One-time'
-                                        : 'Recurring',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: colorScheme.onSurface
-                                          .withOpacity(0.45),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          if (streak > 0) ...[
-                            Icon(Icons.local_fire_department,
-                                size: 12,
-                                color: colorScheme.primary
-                                    .withOpacity(0.8)),
-                            const SizedBox(width: 2),
-                            Text(
-                              '$streak',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: colorScheme.primary,
-                                fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        goal.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        goal.isOneTime
+                                            ? 'One-time'
+                                            : 'Recurring',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: colorScheme.onSurface
+                                              .withOpacity(0.45),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              if (streak > 0) ...[
+                                Icon(Icons.local_fire_department,
+                                    size: 12,
+                                    color:
+                                        colorScheme.primary.withOpacity(0.8)),
+                                const SizedBox(width: 2),
+                                Text(
+                                  '$streak',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              Text(
+                                '${(rate * 100).toInt()}%',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: _rateColor(rate),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                          Text(
-                            '${(rate * 100).toInt()}%',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: _rateColor(rate),
-                            ),
+                            ],
                           ),
                         ],
                       ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: rate,
+                          minHeight: 5,
+                          backgroundColor: color.withOpacity(0.12),
+                          valueColor: AlwaysStoppedAnimation<Color>(color),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '$completed completed · $resolved logged',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: colorScheme.onSurface.withOpacity(0.4),
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: rate,
-                      minHeight: 5,
-                      backgroundColor: color.withOpacity(0.12),
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(color),
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '$completed completed · $resolved logged',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: colorScheme.onSurface.withOpacity(0.4),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        );
-      }),
-    ],
-  ),
-);
+            );
+          }),
+        ],
+      ),
+    );
   }
 
   Color _rateColor(double r) {
@@ -765,8 +753,7 @@ class _DayHistory extends StatefulWidget {
   final List<_HistoryDay> historyDays;
   final ColorScheme colorScheme;
 
-  const _DayHistory(
-      {required this.historyDays, required this.colorScheme});
+  const _DayHistory({required this.historyDays, required this.colorScheme});
 
   @override
   State<_DayHistory> createState() => _DayHistoryState();
@@ -830,8 +817,7 @@ class _DayHistoryState extends State<_DayHistory> {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: GestureDetector(
-                onTap: () =>
-                    setState(() => _visibleCount += 10),
+                onTap: () => setState(() => _visibleCount += 10),
                 child: Center(
                   child: Text(
                     'Show more (${days.length - _visibleCount} remaining)',
@@ -865,10 +851,9 @@ class _DayRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateObj =
-        DateFormat('yyyy-MM-dd').parse(day.dateStr);
-    final isToday = day.dateStr ==
-        DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final dateObj = DateFormat('yyyy-MM-dd').parse(day.dateStr);
+    final isToday =
+        day.dateStr == DateFormat('yyyy-MM-dd').format(DateTime.now());
     final completedColor = _successColor(day.rate);
 
     return Column(
@@ -877,16 +862,14 @@ class _DayRow extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-                vertical: 8, horizontal: 4),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
             child: Row(
               children: [
                 // Date column
                 SizedBox(
                   width: 52,
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         DateFormat('d MMM').format(dateObj),
@@ -902,8 +885,7 @@ class _DayRow extends StatelessWidget {
                         DateFormat('EEE').format(dateObj),
                         style: TextStyle(
                           fontSize: 10,
-                          color: colorScheme.onSurface
-                              .withOpacity(0.45),
+                          color: colorScheme.onSurface.withOpacity(0.45),
                         ),
                       ),
                     ],
@@ -914,21 +896,17 @@ class _DayRow extends StatelessWidget {
                 // Progress mini-bar
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       ClipRRect(
-                        borderRadius:
-                            BorderRadius.circular(3),
+                        borderRadius: BorderRadius.circular(3),
                         child: LinearProgressIndicator(
                           value: day.rate,
                           minHeight: 6,
-                          backgroundColor: colorScheme
-                              .surfaceVariant
-                              .withOpacity(0.4),
+                          backgroundColor:
+                              colorScheme.surfaceVariant.withOpacity(0.4),
                           valueColor:
-                              AlwaysStoppedAnimation<Color>(
-                                  completedColor),
+                              AlwaysStoppedAnimation<Color>(completedColor),
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -936,8 +914,7 @@ class _DayRow extends StatelessWidget {
                         '${day.completedCount}/${day.totalCount} goals',
                         style: TextStyle(
                           fontSize: 10,
-                          color: colorScheme.onSurface
-                              .withOpacity(0.45),
+                          color: colorScheme.onSurface.withOpacity(0.45),
                         ),
                       ),
                     ],
@@ -966,8 +943,7 @@ class _DayRow extends StatelessWidget {
                   child: Icon(
                     Icons.chevron_right_rounded,
                     size: 18,
-                    color:
-                        colorScheme.onSurface.withOpacity(0.3),
+                    color: colorScheme.onSurface.withOpacity(0.3),
                   ),
                 ),
               ],
@@ -981,14 +957,11 @@ class _DayRow extends StatelessWidget {
           curve: Curves.easeOut,
           child: isExpanded
               ? Padding(
-                  padding: const EdgeInsets.only(
-                      left: 8, bottom: 8),
+                  padding: const EdgeInsets.only(left: 8, bottom: 8),
                   child: Column(
-                    children:
-                        day.entries.map((entry) {
+                    children: day.entries.map((entry) {
                       return _GoalEntryRow(
-                          entry: entry,
-                          colorScheme: colorScheme);
+                          entry: entry, colorScheme: colorScheme);
                     }).toList(),
                   ),
                 )
@@ -1015,8 +988,7 @@ class _GoalEntryRow extends StatelessWidget {
   final _HistoryEntry entry;
   final ColorScheme colorScheme;
 
-  const _GoalEntryRow(
-      {required this.entry, required this.colorScheme});
+  const _GoalEntryRow({required this.entry, required this.colorScheme});
 
   @override
   Widget build(BuildContext context) {
@@ -1051,18 +1023,14 @@ class _GoalEntryRow extends StatelessWidget {
                     ? colorScheme.onSurface.withOpacity(0.7)
                     : isFailed
                         ? const Color(0xFFC62828)
-                        : colorScheme.onSurface
-                            .withOpacity(0.4),
-                decoration: isCompleted
-                    ? TextDecoration.lineThrough
-                    : null,
+                        : colorScheme.onSurface.withOpacity(0.4),
+                decoration: isCompleted ? TextDecoration.lineThrough : null,
               ),
             ),
           ),
           // Tags
           if (entry.isOneTime)
-            _tag('one-time',
-                colorScheme.tertiary.withOpacity(0.8))
+            _tag('one-time', colorScheme.tertiary.withOpacity(0.8))
           else
             _tag(
                 entry.isActionBased ? 'do' : 'avoid',
@@ -1076,16 +1044,15 @@ class _GoalEntryRow extends StatelessWidget {
 
   Widget _tag(String text, Color color) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         text,
-        style: TextStyle(
-            fontSize: 9, color: color, fontWeight: FontWeight.w600),
+        style:
+            TextStyle(fontSize: 9, color: color, fontWeight: FontWeight.w600),
       ),
     );
   }

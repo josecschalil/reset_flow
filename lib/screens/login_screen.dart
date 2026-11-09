@@ -13,7 +13,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  static const _brand = Color(0xFF5C35C2);
+  static const _brand = Color(0xFF1E3A5F);
+  static const _bg = Color(0xFFF5F6F8);
+  static const _textDark = Color(0xFF14202E);
+
   final List<String> _digits = [];
   bool _error = false;
   late AnimationController _shakeCtrl;
@@ -27,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen>
       statusBarIconBrightness: Brightness.dark,
     ));
     _shakeCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 400));
+        vsync: this, duration: const Duration(milliseconds: 500));
     _shakeAnim = Tween<double>(begin: 0, end: 1)
         .animate(CurvedAnimation(parent: _shakeCtrl, curve: Curves.elasticIn));
   }
@@ -60,15 +63,14 @@ class _LoginScreenState extends State<LoginScreen>
       if (!mounted) return;
       Navigator.of(context).pushReplacement(PageRouteBuilder(
         pageBuilder: (_, __, ___) => const MainLayout(),
-        transitionsBuilder: (_, anim, __, child) =>
-            FadeTransition(opacity: anim, child: child),
-        transitionDuration: const Duration(milliseconds: 350),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
       ));
     } else {
       HapticFeedback.vibrate();
       setState(() => _error = true);
       await _shakeCtrl.forward(from: 0);
-      await Future.delayed(const Duration(milliseconds: 350));
+      await Future.delayed(const Duration(milliseconds: 400));
       setState(() => _digits.clear());
       _shakeCtrl.reset();
     }
@@ -76,133 +78,158 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    // using LayoutBuilder inside SingleChildScrollView fixes overflows
+    // on small screens while maintaining layout on larger ones.
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          // Ambient blobs
-          Positioned(
-            top: -70,
-            right: -70,
-            child: _blob(220, const Color(0xFFEDE9FB)),
-          ),
-          Positioned(
-            bottom: -50,
-            left: -50,
-            child: _blob(180, const Color(0xFFF3F0FD)),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 52),
-                // Logo
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFFEDE9FB),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _brand.withOpacity(0.15),
-                        blurRadius: 24,
-                        spreadRadius: 4,
+      backgroundColor: _bg,
+      body: SafeArea(
+        child: LayoutBuilder(builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 48),
+                    // Icon
+                    Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: const Icon(Icons.bolt_rounded, color: _brand, size: 40),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Welcome back',
-                  style: TextStyle(
-                    color: Color(0xFF1A1A2E),
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Enter your PIN to continue',
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: 13,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 48),
-                // PIN dots
-                AnimatedBuilder(
-                  animation: _shakeCtrl,
-                  builder: (context, child) {
-                    final offset = _error
-                        ? 10 *
-                            (0.5 - (_shakeAnim.value % 0.25) / 0.25).abs()
-                        : 0.0;
-                    return Transform.translate(
-                        offset: Offset(offset, 0), child: child);
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(4, (i) {
-                      final filled = i < _digits.length;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        margin: const EdgeInsets.symmetric(horizontal: 10),
-                        width: 18,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: filled
-                              ? (_error ? Colors.red.shade400 : _brand)
-                              : Colors.grey.shade200,
-                          boxShadow: filled && !_error
-                              ? [
-                                  BoxShadow(
-                                    color: _brand.withOpacity(0.35),
-                                    blurRadius: 8,
-                                  )
-                                ]
-                              : null,
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                AnimatedOpacity(
-                  opacity: _error ? 1 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Text(
-                    'Incorrect PIN. Try again.',
-                    style: TextStyle(
-                        color: Colors.red.shade400, fontSize: 12),
-                  ),
-                ),
-                const Spacer(),
-                _buildNumpad(),
-                const SizedBox(height: 20),
-                TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const ChangePasswordScreen()),
-                  ),
-                  child: Text(
-                    'Change PIN',
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 13,
-                      decoration: TextDecoration.underline,
-                      decorationColor: Colors.grey.shade400,
+                      child: const Icon(Icons.lock_rounded,
+                          color: _brand, size: 28),
                     ),
-                  ),
+                    const SizedBox(height: 28),
+                    const Text(
+                      'Welcome Back',
+                      style: TextStyle(
+                        color: _textDark,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Enter your secure PIN',
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+
+                    // Spacing that collapses if needed
+                    const Spacer(),
+
+                    // PIN dots
+                    AnimatedBuilder(
+                      animation: _shakeCtrl,
+                      builder: (context, child) {
+                        final offset = _error
+                            ? 12 *
+                                (0.5 - (_shakeAnim.value % 0.25) / 0.25).abs()
+                            : 0.0;
+                        return Transform.translate(
+                            offset: Offset(offset, 0), child: child);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 18),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.02),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(4, (i) {
+                            final filled = i < _digits.length;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: filled
+                                    ? (_error ? Colors.red.shade400 : _brand)
+                                    : Colors.grey.shade200,
+                                border: filled
+                                    ? null
+                                    : Border.all(
+                                        color: Colors.grey.shade300,
+                                        width: 1.5),
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    AnimatedOpacity(
+                      opacity: _error ? 1 : 0,
+                      duration: const Duration(milliseconds: 250),
+                      child: Text(
+                        'Incorrect PIN',
+                        style: TextStyle(
+                            color: Colors.red.shade400,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    // Numpad
+                    _buildNumpad(),
+
+                    const SizedBox(height: 24),
+
+                    // Change PIN Link
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ChangePasswordScreen()),
+                      ),
+                      style: TextButton.styleFrom(
+                        splashFactory: NoSplash.splashFactory,
+                      ),
+                      child: Text(
+                        'Change PIN',
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 ),
-                const SizedBox(height: 28),
-              ],
+              ),
             ),
-          ),
-        ],
+          );
+        }),
       ),
     );
   }
@@ -215,31 +242,29 @@ class _LoginScreenState extends State<LoginScreen>
       ['', '0', 'del'],
     ];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 48),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: keys.map((row) {
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: row.map((k) {
-                if (k.isEmpty) return const SizedBox(width: 72, height: 72);
+                if (k.isEmpty) return const SizedBox(width: 64, height: 64);
                 if (k == 'del') {
                   return _key(
                     onTap: _onDelete,
                     child: Icon(Icons.backspace_outlined,
-                        color: Colors.grey.shade600, size: 22),
-                    isText: false,
+                        color: Colors.grey.shade500, size: 22),
                   );
                 }
                 return _key(
                   onTap: () => _onDigit(k),
                   child: Text(k,
                       style: const TextStyle(
-                          color: Color(0xFF1A1A2E),
-                          fontSize: 24,
+                          color: _textDark,
+                          fontSize: 26,
                           fontWeight: FontWeight.w500)),
-                  isText: true,
                 );
               }).toList(),
             ),
@@ -249,39 +274,21 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _key(
-      {required VoidCallback onTap,
-      required Widget child,
-      required bool isText}) {
-    return GestureDetector(
+  Widget _key({required VoidCallback onTap, required Widget child}) {
+    return InkWell(
       onTap: onTap,
+      customBorder: const CircleBorder(),
+      highlightColor: Colors.white,
+      splashColor: const Color(0xFFEEF2F7),
       child: Container(
-        width: 72,
-        height: 72,
+        width: 64,
+        height: 64,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isText ? Colors.grey.shade50 : Colors.transparent,
-          border: isText
-              ? Border.all(color: Colors.grey.shade200)
-              : null,
-          boxShadow: isText
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  )
-                ]
-              : null,
+          color: Colors.white.withOpacity(0.5),
         ),
         child: Center(child: child),
       ),
     );
   }
-
-  Widget _blob(double size, Color color) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      );
 }

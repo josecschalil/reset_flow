@@ -10,7 +10,10 @@ class ChangePasswordScreen extends StatefulWidget {
 }
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  static const _brand = Color(0xFF5C35C2);
+  static const _brand = Color(0xFF1E3A5F);
+  static const _bg = Color(0xFFF5F6F8);
+  static const _textDark = Color(0xFF14202E);
+
   final _formKey = GlobalKey<FormState>();
   final _currentCtrl = TextEditingController();
   final _newCtrl = TextEditingController();
@@ -60,38 +63,46 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   InputDecoration _inp(String label, bool show, VoidCallback toggle) {
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+      labelStyle: TextStyle(
+          color: Colors.grey.shade500,
+          fontSize: 13,
+          fontWeight: FontWeight.w500),
       filled: true,
-      fillColor: Colors.grey.shade50,
+      fillColor: Colors.white,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: Colors.grey.shade200),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: Colors.grey.shade200),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: _brand, width: 1.5),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: _brand, width: 2.0),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.redAccent),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      counterStyle: const TextStyle(fontSize: 0, height: 0), // hide counter
-      suffixIcon: IconButton(
-        onPressed: toggle,
-        icon: Icon(
-          show ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-          color: Colors.grey.shade400,
-          size: 20,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      counterStyle: const TextStyle(fontSize: 0, height: 0),
+      suffixIcon: Padding(
+        padding: const EdgeInsets.only(right: 8.0),
+        child: IconButton(
+          onPressed: toggle,
+          splashRadius: 20,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          icon: Icon(
+            show ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+            color: Colors.grey.shade400,
+            size: 20,
+          ),
         ),
       ),
     );
@@ -100,243 +111,209 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          // Ambient blobs
-          Positioned(
-            top: -60,
-            right: -60,
-            child: _blob(200, const Color(0xFFEDE9FB)),
-          ),
-          Positioned(
-            bottom: -40,
-            left: -40,
-            child: _blob(160, const Color(0xFFF3F0FD)),
-          ),
-          SafeArea(
+      backgroundColor: _bg,
+      appBar: AppBar(
+        backgroundColor: _bg,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              size: 20, color: _textDark),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+          child: Form(
+            key: _formKey,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Custom app bar
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                            size: 20, color: Color(0xFF1A1A2E)),
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
+                  child: const Icon(Icons.lock_reset_rounded,
+                      color: _brand, size: 26),
                 ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(28, 8, 28, 32),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 32),
+                const Text(
+                  'Change PIN',
+                  style: TextStyle(
+                    color: _textDark,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Update your security PIN below.',
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 48),
+                TextFormField(
+                  controller: _currentCtrl,
+                  obscureText: !_showCurrent,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  style: const TextStyle(
+                      color: _textDark,
+                      fontSize: 18,
+                      letterSpacing: 8,
+                      fontWeight: FontWeight.w600),
+                  decoration: _inp('Current PIN', _showCurrent,
+                      () => setState(() => _showCurrent = !_showCurrent)),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Required';
+                    if (v.trim().length < 4) return 'PIN must be 4 digits';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _newCtrl,
+                  obscureText: !_showNew,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  style: const TextStyle(
+                      color: _textDark,
+                      fontSize: 18,
+                      letterSpacing: 8,
+                      fontWeight: FontWeight.w600),
+                  decoration: _inp('New PIN', _showNew,
+                      () => setState(() => _showNew = !_showNew)),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Required';
+                    if (v.trim().length < 4) return 'PIN must be 4 digits';
+                    if (v.trim() == _currentCtrl.text.trim()) {
+                      return 'New PIN must differ from current';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _confirmCtrl,
+                  obscureText: !_showConfirm,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  style: const TextStyle(
+                      color: _textDark,
+                      fontSize: 18,
+                      letterSpacing: 8,
+                      fontWeight: FontWeight.w600),
+                  decoration: _inp('Confirm New PIN', _showConfirm,
+                      () => setState(() => _showConfirm = !_showConfirm)),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Required';
+                    if (v.trim() != _newCtrl.text.trim()) {
+                      return 'PINs do not match';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                if (_errorMsg != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
                         children: [
-                          // Header
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFFEDE9FB),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _brand.withOpacity(0.15),
-                                  blurRadius: 20,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                            child: const Icon(Icons.lock_outline_rounded,
-                                color: _brand, size: 28),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Change PIN',
-                            style: TextStyle(
-                              color: Color(0xFF1A1A2E),
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Enter your current PIN, then set a new one.',
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 13,
-                              height: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 36),
-                          // Current PIN
-                          TextFormField(
-                            controller: _currentCtrl,
-                            obscureText: !_showCurrent,
-                            keyboardType: TextInputType.number,
-                            maxLength: 4,
-                            style: const TextStyle(
-                                color: Color(0xFF1A1A2E),
-                                fontSize: 22,
-                                letterSpacing: 10),
-                            decoration: _inp(
-                                'Current PIN',
-                                _showCurrent,
-                                () => setState(
-                                    () => _showCurrent = !_showCurrent)),
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) return 'Required';
-                              if (v.trim().length < 4) return 'PIN must be 4 digits';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          // New PIN
-                          TextFormField(
-                            controller: _newCtrl,
-                            obscureText: !_showNew,
-                            keyboardType: TextInputType.number,
-                            maxLength: 4,
-                            style: const TextStyle(
-                                color: Color(0xFF1A1A2E),
-                                fontSize: 22,
-                                letterSpacing: 10),
-                            decoration: _inp(
-                                'New PIN',
-                                _showNew,
-                                () => setState(() => _showNew = !_showNew)),
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) return 'Required';
-                              if (v.trim().length < 4) return 'PIN must be 4 digits';
-                              if (v.trim() == _currentCtrl.text.trim())
-                                return 'New PIN must differ from current';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          // Confirm PIN
-                          TextFormField(
-                            controller: _confirmCtrl,
-                            obscureText: !_showConfirm,
-                            keyboardType: TextInputType.number,
-                            maxLength: 4,
-                            style: const TextStyle(
-                                color: Color(0xFF1A1A2E),
-                                fontSize: 22,
-                                letterSpacing: 10),
-                            decoration: _inp(
-                                'Confirm New PIN',
-                                _showConfirm,
-                                () => setState(
-                                    () => _showConfirm = !_showConfirm)),
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) return 'Required';
-                              if (v.trim() != _newCtrl.text.trim())
-                                return 'PINs do not match';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          // Error banner
-                          if (_errorMsg != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.red.shade200),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.error_outline,
-                                      color: Colors.red.shade400, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(_errorMsg!,
-                                      style: TextStyle(
-                                          color: Colors.red.shade500,
-                                          fontSize: 13)),
-                                ],
-                              ),
-                            ),
-                          // Success banner
-                          if (_success)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.green.shade200),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.check_circle_outline,
-                                      color: Colors.green.shade500, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text('PIN updated successfully!',
-                                      style: TextStyle(
-                                          color: Colors.green.shade600,
-                                          fontSize: 13)),
-                                ],
-                              ),
-                            ),
-                          const SizedBox(height: 28),
-                          // Submit
-                          SizedBox(
-                            width: double.infinity,
-                            height: 54,
-                            child: ElevatedButton(
-                              onPressed: _loading || _success ? null : _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _brand,
-                                disabledBackgroundColor:
-                                    _brand.withOpacity(0.35),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14)),
-                                elevation: 0,
-                              ),
-                              child: _loading
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation(
-                                              Colors.white)),
-                                    )
-                                  : const Text(
-                                      'Update PIN',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                            ),
-                          ),
+                          Icon(Icons.error_rounded,
+                              color: Colors.red.shade400, size: 20),
+                          const SizedBox(width: 8),
+                          Text(_errorMsg!,
+                              style: TextStyle(
+                                  color: Colors.red.shade700,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
+                  ),
+                if (_success)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle_rounded,
+                              color: Colors.green.shade500, size: 20),
+                          const SizedBox(width: 8),
+                          Text('PIN updated successfully!',
+                              style: TextStyle(
+                                  color: Colors.green.shade700,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _loading || _success ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _brand,
+                      disabledBackgroundColor: _brand.withOpacity(0.5),
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(28)), // Match app buttons
+                      elevation: 0,
+                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation(Colors.white)),
+                          )
+                        : const Text(
+                            'Update PIN',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
                   ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
-
-  Widget _blob(double size, Color color) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      );
 }

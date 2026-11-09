@@ -1,22 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:reset_flow/models/financial_transaction.dart';
+import 'package:reset_flow/models/account_balance.dart';
 import 'package:reset_flow/services/database_helper.dart';
 
 class MonetaryState {
   final List<FinancialTransaction> transactions;
+  final List<AccountBalance> accounts;
   final bool isLoading;
 
   MonetaryState({
     required this.transactions,
+    this.accounts = const [],
     this.isLoading = false,
   });
 
   MonetaryState copyWith({
     List<FinancialTransaction>? transactions,
+    List<AccountBalance>? accounts,
     bool? isLoading,
   }) {
     return MonetaryState(
       transactions: transactions ?? this.transactions,
+      accounts: accounts ?? this.accounts,
       isLoading: isLoading ?? this.isLoading,
     );
   }
@@ -30,7 +35,26 @@ class MonetaryNotifier extends StateNotifier<MonetaryState> {
   Future<void> loadTransactions() async {
     state = state.copyWith(isLoading: true);
     final txs = await DatabaseHelper.instance.getAllTransactions();
-    state = state.copyWith(transactions: txs, isLoading: false);
+    final accounts = await DatabaseHelper.instance.getAccountBalances();
+    state = state.copyWith(
+        transactions: txs, accounts: accounts, isLoading: false);
+  }
+
+  Future<void> addAccountBalance(String name, double balance) async {
+    await DatabaseHelper.instance.insertAccountBalance(
+      AccountBalance(name: name, balance: balance),
+    );
+    await loadTransactions();
+  }
+
+  Future<void> updateAccountBalance(AccountBalance account) async {
+    await DatabaseHelper.instance.updateAccountBalance(account);
+    await loadTransactions();
+  }
+
+  Future<void> deleteAccountBalance(String accountId) async {
+    await DatabaseHelper.instance.deleteAccountBalance(accountId);
+    await loadTransactions();
   }
 
   Future<void> addTransaction(FinancialTransaction tx) async {
@@ -201,6 +225,9 @@ class MonetaryNotifier extends StateNotifier<MonetaryState> {
       .fold(0.0, (sum, tx) => sum + tx.amount);
 
   double get netBalance => totalCredit - totalDebit;
+
+  double get totalAccountBalance =>
+      state.accounts.fold(0.0, (sum, account) => sum + account.balance);
 
   List<String> get uniquePeople {
     return state.transactions.map((tx) => tx.personName).toSet().toList();

@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:reset_flow/screens/login_screen.dart';
@@ -15,7 +14,6 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _logoCtrl;
   late AnimationController _textCtrl;
   late Animation<double> _logoScale;
-  late Animation<double> _logoOpacity;
   late Animation<double> _textOpacity;
   late Animation<double> _textSlide;
 
@@ -28,29 +26,29 @@ class _SplashScreenState extends State<SplashScreen>
     ));
 
     _logoCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900))
+        vsync: this, duration: const Duration(milliseconds: 500))
       ..forward();
-    _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
-        CurvedAnimation(parent: _logoCtrl, curve: Curves.elasticOut));
-    _logoOpacity =
-        CurvedAnimation(parent: _logoCtrl, curve: Curves.easeIn);
+
+    // Gentle expansion while remaining visible from frame 0
+    _logoScale = Tween<double>(begin: 0.90, end: 1.0)
+        .animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutCubic));
 
     _textCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
-    _textOpacity =
-        CurvedAnimation(parent: _textCtrl, curve: Curves.easeIn);
-    _textSlide = Tween<double>(begin: 16, end: 0).animate(
-        CurvedAnimation(parent: _textCtrl, curve: Curves.easeOut));
+        vsync: this, duration: const Duration(milliseconds: 450));
+    _textOpacity = CurvedAnimation(parent: _textCtrl, curve: Curves.easeIn);
+    _textSlide = Tween<double>(begin: 10, end: 0)
+        .animate(CurvedAnimation(parent: _textCtrl, curve: Curves.easeOutCubic));
 
-    Future.delayed(const Duration(milliseconds: 500), _textCtrl.forward);
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (mounted) _textCtrl.forward();
+    });
 
-    Future.delayed(const Duration(milliseconds: 2200), () {
+    Future.delayed(const Duration(milliseconds: 1200), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(PageRouteBuilder(
           pageBuilder: (_, __, ___) => const LoginScreen(),
-          transitionsBuilder: (_, anim, __, child) =>
-              FadeTransition(opacity: anim, child: child),
-          transitionDuration: const Duration(milliseconds: 450),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
         ));
       }
     });
@@ -65,71 +63,82 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    const brand = Color(0xFF5C35C2);
+    const brand = Color(0xFF1E3A5F);
+    const bg = Color(0xFFF5F6F8); // AppTheme.pageBackground
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bg,
       body: Stack(
         children: [
-          // Soft purple blob top-right
+          // Ambient soft glowing orbs for subtle texture
           Positioned(
-            top: -80,
-            right: -80,
+            top: -100,
+            right: -100,
             child: Container(
-              width: 260,
-              height: 260,
+              width: 300,
+              height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFEDE9FB),
+                gradient: RadialGradient(
+                  colors: [
+                    brand.withValues(alpha: 0.06),
+                    brand.withValues(alpha: 0.0),
+                  ],
+                ),
               ),
             ),
           ),
-          // Soft blob bottom-left
           Positioned(
-            bottom: -60,
-            left: -60,
+            bottom: -50,
+            left: -100,
             child: Container(
-              width: 200,
-              height: 200,
+              width: 250,
+              height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFF3F0FD),
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF4A6A94).withValues(alpha: 0.05),
+                    const Color(0xFF4A6A94).withValues(alpha: 0.0),
+                  ],
+                ),
               ),
             ),
           ),
-          // Center content
+
+          // Main Center Content
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Logo circle
                 AnimatedBuilder(
                   animation: _logoCtrl,
-                  builder: (context, _) => Opacity(
-                    opacity: _logoOpacity.value,
-                    child: Transform.scale(
-                      scale: _logoScale.value,
-                      child: Container(
-                        width: 110,
-                        height: 110,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFFEDE9FB),
-                          boxShadow: [
-                            BoxShadow(
-                              color: brand.withOpacity(0.18),
-                              blurRadius: 40,
-                              spreadRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(Icons.bolt_rounded,
-                            color: brand, size: 54),
+                  builder: (context, _) => Transform.scale(
+                    scale: _logoScale.value,
+                    child: Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
+                          BoxShadow(
+                            color: brand.withValues(alpha: 0.06),
+                            blurRadius: 10,
+                          ),
+                        ],
                       ),
+                      child: const Icon(Icons.bolt_rounded,
+                          color: brand, size: 40),
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
-                // App name
+                const SizedBox(height: 36),
                 AnimatedBuilder(
                   animation: _textCtrl,
                   builder: (context, _) => Opacity(
@@ -141,20 +150,20 @@ class _SplashScreenState extends State<SplashScreen>
                           const Text(
                             'ResetFlow',
                             style: TextStyle(
-                              color: Color(0xFF1A1A2E),
-                              fontSize: 34,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
+                              color: Color(0xFF14202E),
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.0,
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 10),
                           Text(
-                            'Beat Procrastination',
+                            'BEAT PROCRASTINATION',
                             style: TextStyle(
                               color: Colors.grey.shade500,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              letterSpacing: 1.8,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 2.5,
                             ),
                           ),
                         ],
@@ -165,23 +174,23 @@ class _SplashScreenState extends State<SplashScreen>
               ],
             ),
           ),
-          // Bottom spinner
+
+          // Bottom Loader
           Positioned(
-            bottom: 56,
+            bottom: 60,
             left: 0,
             right: 0,
             child: AnimatedBuilder(
               animation: _textCtrl,
               builder: (context, _) => Opacity(
                 opacity: _textOpacity.value,
-                child: const Center(
+                child: Center(
                   child: SizedBox(
-                    width: 22,
-                    height: 22,
+                    width: 24,
+                    height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor:
-                          AlwaysStoppedAnimation(Color(0xFF7B5ED6)),
+                      valueColor: AlwaysStoppedAnimation(Colors.grey.shade300),
                     ),
                   ),
                 ),

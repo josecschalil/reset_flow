@@ -15,7 +15,7 @@ class AddGoalScreen extends ConsumerStatefulWidget {
 }
 
 class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
-  static const _brand = Color(0xFF5C35C2);
+  static const _brand = Color(0xFF1E3A5F);
 
   final _titleController = TextEditingController();
   bool _isActionBased = true;
@@ -69,7 +69,8 @@ class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
     }
 
     final bool isOneTime = _frequency == _GoalFrequency.oneTime;
-    final List<int> days = isOneTime ? [DateTime.now().weekday] : (_selectedDays.toList()..sort());
+    final List<int> days =
+        isOneTime ? [DateTime.now().weekday] : (_selectedDays.toList()..sort());
 
     if (widget.goalToEdit != null) {
       final updatedGoal = Goal(
@@ -84,11 +85,11 @@ class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
       ref.read(goalProvider.notifier).updateGoal(updatedGoal);
     } else {
       ref.read(goalProvider.notifier).addGoal(
-        title,
-        _isActionBased,
-        days,
-        isOneTime: isOneTime,
-      );
+            title,
+            _isActionBased,
+            days,
+            isOneTime: isOneTime,
+          );
     }
 
     Navigator.pop(context);
@@ -103,13 +104,16 @@ class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
       appBar: AppBar(
         title: Text(
           isEditing ? 'Edit Goal' : 'New Goal',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1A1A2E)),
+          style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Color(0xFF14202E)),
         ),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Color(0xFF1A1A2E)),
+          icon: const Icon(Icons.close, color: Color(0xFF14202E)),
           onPressed: () => Navigator.pop(context),
         ),
         bottom: PreferredSize(
@@ -128,7 +132,7 @@ class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
             TextField(
               controller: _titleController,
               textCapitalization: TextCapitalization.sentences,
-              style: const TextStyle(fontSize: 16, color: Color(0xFF1A1A2E)),
+              style: const TextStyle(fontSize: 16, color: Color(0xFF14202E)),
               decoration: InputDecoration(
                 hintText: 'What do you want to accomplish?',
                 hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 16),
@@ -157,7 +161,8 @@ class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _typeCard(
+                Expanded(
+                    child: _typeCard(
                   title: 'Action',
                   subtitle: 'Do something positive',
                   icon: Icons.bolt,
@@ -165,7 +170,8 @@ class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
                   onTap: () => setState(() => _isActionBased = true),
                 )),
                 const SizedBox(width: 14),
-                Expanded(child: _typeCard(
+                Expanded(
+                    child: _typeCard(
                   title: 'Avoid',
                   subtitle: 'Stop a habit',
                   icon: Icons.block,
@@ -182,20 +188,24 @@ class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _typeCard(
+                Expanded(
+                    child: _typeCard(
                   title: 'One-Time',
                   subtitle: null,
                   icon: Icons.looks_one,
                   isSelected: _frequency == _GoalFrequency.oneTime,
-                  onTap: () => setState(() => _frequency = _GoalFrequency.oneTime),
+                  onTap: () =>
+                      setState(() => _frequency = _GoalFrequency.oneTime),
                 )),
                 const SizedBox(width: 14),
-                Expanded(child: _typeCard(
+                Expanded(
+                    child: _typeCard(
                   title: 'Recurring',
                   subtitle: null,
                   icon: Icons.repeat,
                   isSelected: _frequency == _GoalFrequency.specificDays,
-                  onTap: () => setState(() => _frequency = _GoalFrequency.specificDays),
+                  onTap: () =>
+                      setState(() => _frequency = _GoalFrequency.specificDays),
                 )),
               ],
             ),
@@ -238,7 +248,9 @@ class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: isSelected ? Colors.white : const Color(0xFF1A1A2E),
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF14202E),
                           ),
                         ),
                       ),
@@ -268,7 +280,8 @@ class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
                 onPressed: _saveGoal,
                 child: Text(
                   isEditing ? 'Update Goal' : 'Create Goal',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -304,7 +317,7 @@ class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF9F8FD) : Colors.white,
+          color: isSelected ? const Color(0xFFF8F9FB) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? _brand : Colors.grey.shade200,
@@ -313,13 +326,16 @@ class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? _brand : Colors.grey.shade400, size: 28),
+            Icon(icon,
+                color: isSelected ? _brand : Colors.grey.shade400, size: 28),
             const SizedBox(height: 12),
             Text(title,
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
-                    color: isSelected ? const Color(0xFF1A1A2E) : Colors.grey.shade800)),
+                    color: isSelected
+                        ? const Color(0xFF14202E)
+                        : Colors.grey.shade800)),
             if (subtitle != null) ...[
               const SizedBox(height: 4),
               Text(subtitle,
@@ -344,7 +360,10 @@ class _AddGoalScreenState extends ConsumerState<AddGoalScreen> {
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1A1A2E)),
+          style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF14202E)),
         ),
       ),
     );

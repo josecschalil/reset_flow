@@ -26,7 +26,6 @@ class FocusModeScreen extends ConsumerStatefulWidget {
 
 class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
     with TickerProviderStateMixin {
-
   static const platform = MethodChannel('com.resetflow/app_lock');
 
   int _selectedMinutes = 25;
@@ -38,7 +37,7 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
   DateTime _viewingMonth = DateTime(DateTime.now().year, DateTime.now().month);
   bool _viewingAllTime = false;
 
-  late AnimationController _skyAnim;   // ambient star twinkle
+  late AnimationController _skyAnim; // ambient star twinkle
   late AnimationController _timerAnim; // ring progress
 
   late List<_AmbientStar> _ambientStars;
@@ -46,19 +45,23 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
   @override
   void initState() {
     super.initState();
-    _skyAnim = AnimationController(vsync: this, duration: const Duration(seconds: 4))
-      ..repeat();
-    _timerAnim = AnimationController(vsync: this, duration: Duration(minutes: _selectedMinutes))
+    _skyAnim =
+        AnimationController(vsync: this, duration: const Duration(seconds: 4))
+          ..repeat();
+    _timerAnim = AnimationController(
+        vsync: this, duration: Duration(minutes: _selectedMinutes))
       ..addListener(() => setState(() {}));
 
     final rnd = math.Random(99991);
-    _ambientStars = List.generate(80, (_) => _AmbientStar(
-      rnd.nextDouble(),
-      rnd.nextDouble() * 0.75,
-      0.5 + rnd.nextDouble() * 1.6,
-      rnd.nextDouble() * math.pi * 2,
-      0.4 + rnd.nextDouble() * 1.5,
-    ));
+    _ambientStars = List.generate(
+        80,
+        (_) => _AmbientStar(
+              rnd.nextDouble(),
+              rnd.nextDouble() * 0.75,
+              0.5 + rnd.nextDouble() * 1.6,
+              rnd.nextDouble() * math.pi * 2,
+              0.4 + rnd.nextDouble() * 1.5,
+            ));
   }
 
   @override
@@ -71,10 +74,15 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
   }
 
   Future<void> _startLockTask() async {
-    try { await platform.invokeMethod('startLockTask'); } catch (_) {}
+    try {
+      await platform.invokeMethod('startLockTask');
+    } catch (_) {}
   }
+
   Future<void> _stopLockTask() async {
-    try { await platform.invokeMethod('stopLockTask'); } catch (_) {}
+    try {
+      await platform.invokeMethod('stopLockTask');
+    } catch (_) {}
   }
 
   void _startTimer() async {
@@ -102,14 +110,21 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
     await _stopLockTask();
     HapticFeedback.heavyImpact();
 
-    int rating = _selectedMinutes < 25 ? 1 : _selectedMinutes < 45 ? 2 : 3;
+    int rating = _selectedMinutes < 25
+        ? 1
+        : _selectedMinutes < 45
+            ? 2
+            : 3;
     await ref.read(focusProvider.notifier).addSession(FocusSession(
-      startTime: _sessionStartTime ?? DateTime.now(),
-      durationMinutes: _selectedMinutes,
-      status: 'completed',
-      rating: rating,
-    ));
-    setState(() { _isActive = false; _secondsRemaining = _selectedMinutes * 60; });
+          startTime: _sessionStartTime ?? DateTime.now(),
+          durationMinutes: _selectedMinutes,
+          status: 'completed',
+          rating: rating,
+        ));
+    setState(() {
+      _isActive = false;
+      _secondsRemaining = _selectedMinutes * 60;
+    });
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -124,7 +139,8 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF12162B),
-        title: const Text('Give Up?', style: TextStyle(color: Colors.white, fontSize: 18)),
+        title: const Text('Give Up?',
+            style: TextStyle(color: Colors.white, fontSize: 18)),
         content: const Text('This will add a faded star to your sky.',
             style: TextStyle(color: Colors.white54)),
         actions: [
@@ -138,13 +154,19 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
               _timerAnim.stop();
               await _stopLockTask();
               await ref.read(focusProvider.notifier).addSession(FocusSession(
-                startTime: _sessionStartTime ?? DateTime.now(),
-                durationMinutes: _selectedMinutes - (_secondsRemaining ~/ 60),
-                status: 'failed', rating: 0,
-              ));
-              setState(() { _isActive = false; _secondsRemaining = _selectedMinutes * 60; });
+                    startTime: _sessionStartTime ?? DateTime.now(),
+                    durationMinutes:
+                        _selectedMinutes - (_secondsRemaining ~/ 60),
+                    status: 'failed',
+                    rating: 0,
+                  ));
+              setState(() {
+                _isActive = false;
+                _secondsRemaining = _selectedMinutes * 60;
+              });
             },
-            child: const Text('Give Up', style: TextStyle(color: Colors.redAccent)),
+            child: const Text('Give Up',
+                style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -159,14 +181,23 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
       final date = now.subtract(Duration(days: off, hours: rnd.nextInt(12)));
       bool fail = rnd.nextDouble() < 0.2;
       int dur = fail ? 10 : [15, 30, 60][rnd.nextInt(3)];
-      int rating = fail ? 0 : dur == 15 ? 1 : dur == 30 ? 2 : 3;
+      int rating = fail
+          ? 0
+          : dur == 15
+              ? 1
+              : dur == 30
+                  ? 2
+                  : 3;
       await ref.read(focusProvider.notifier).addSession(FocusSession(
-        startTime: date, durationMinutes: dur,
-        status: fail ? 'failed' : 'completed', rating: rating,
-      ));
+            startTime: date,
+            durationMinutes: dur,
+            status: fail ? 'failed' : 'completed',
+            rating: rating,
+          ));
     }
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Demo generated!')));
+    if (mounted)
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Demo generated!')));
   }
 
   void _showResetMenu() {
@@ -178,65 +209,98 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+        padding: EdgeInsets.fromLTRB(
+            16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 36, height: 3, margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+          Container(
+              width: 36,
+              height: 3,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2))),
           Text(
-            _viewingAllTime ? 'Reset Options' : 'Reset — ${DateFormat('MMMM yyyy').format(_viewingMonth)}',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            _viewingAllTime
+                ? 'Reset Options'
+                : 'Reset — ${DateFormat('MMMM yyyy').format(_viewingMonth)}',
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          if (!_viewingAllTime) ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.calendar_month_outlined, color: Colors.orange, size: 20),
-            title: const Text('Clear This Month', style: TextStyle(color: Colors.orange, fontSize: 14)),
-            onTap: () async {
-              Navigator.pop(ctx);
-              await notifier.deleteSessionsByMonth(_viewingMonth.year, _viewingMonth.month);
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Month cleared.')));
-            },
-          ),
-          if (!_viewingAllTime) ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.today_outlined, color: Colors.blueAccent, size: 20),
-            title: const Text('Clear a Specific Day', style: TextStyle(color: Colors.blueAccent, fontSize: 14)),
-            onTap: () async {
-              Navigator.pop(ctx);
-              final d = await showDatePicker(
-                context: context, initialDate: now,
-                firstDate: DateTime(2024), lastDate: now,
-                builder: (c, child) => Theme(data: ThemeData.dark(), child: child!),
-              );
-              if (d != null) {
-                final s = DateFormat('yyyy-MM-dd').format(d);
-                await notifier.deleteSessionsByDay(s);
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$s cleared.')));
-              }
-            },
-          ),
+          if (!_viewingAllTime)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.calendar_month_outlined,
+                  color: Colors.orange, size: 20),
+              title: const Text('Clear This Month',
+                  style: TextStyle(color: Colors.orange, fontSize: 14)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await notifier.deleteSessionsByMonth(
+                    _viewingMonth.year, _viewingMonth.month);
+                if (mounted)
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Month cleared.')));
+              },
+            ),
+          if (!_viewingAllTime)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.today_outlined,
+                  color: Colors.blueAccent, size: 20),
+              title: const Text('Clear a Specific Day',
+                  style: TextStyle(color: Colors.blueAccent, fontSize: 14)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final d = await showDatePicker(
+                  context: context,
+                  initialDate: now,
+                  firstDate: DateTime(2024),
+                  lastDate: now,
+                  builder: (c, child) =>
+                      Theme(data: ThemeData.dark(), child: child!),
+                );
+                if (d != null) {
+                  final s = DateFormat('yyyy-MM-dd').format(d);
+                  await notifier.deleteSessionsByDay(s);
+                  if (mounted)
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text('$s cleared.')));
+                }
+              },
+            ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent, size: 20),
-            title: const Text('Clear Everything', style: TextStyle(color: Colors.redAccent, fontSize: 14)),
+            leading: const Icon(Icons.delete_sweep_outlined,
+                color: Colors.redAccent, size: 20),
+            title: const Text('Clear Everything',
+                style: TextStyle(color: Colors.redAccent, fontSize: 14)),
             onTap: () async {
               Navigator.pop(ctx);
               final ok = await showDialog<bool>(
                 context: context,
                 builder: (c) => AlertDialog(
                   backgroundColor: const Color(0xFF12162B),
-                  title: const Text('Clear all stars?', style: TextStyle(color: Colors.white, fontSize: 16)),
-                  content: const Text('Erases your entire star history.', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                  title: const Text('Clear all stars?',
+                      style: TextStyle(color: Colors.white, fontSize: 16)),
+                  content: const Text('Erases your entire star history.',
+                      style: TextStyle(color: Colors.white54, fontSize: 13)),
                   actions: [
-                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                    TextButton(onPressed: () => Navigator.pop(c, true),
-                        child: const Text('Delete', style: TextStyle(color: Colors.redAccent))),
+                    TextButton(
+                        onPressed: () => Navigator.pop(c, false),
+                        child: const Text('Cancel')),
+                    TextButton(
+                        onPressed: () => Navigator.pop(c, true),
+                        child: const Text('Delete',
+                            style: TextStyle(color: Colors.redAccent))),
                   ],
                 ),
               );
               if (ok == true) {
                 await notifier.clearAllSessions();
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All cleared.')));
+                if (mounted)
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('All cleared.')));
               }
             },
           ),
@@ -261,25 +325,28 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
 
     final visibleSessions = _viewingAllTime
         ? focusState.sessions
-        : focusState.sessions.where((s) =>
-    s.startTime.year == _viewingMonth.year &&
-        s.startTime.month == _viewingMonth.month).toList();
+        : focusState.sessions
+            .where((s) =>
+                s.startTime.year == _viewingMonth.year &&
+                s.startTime.month == _viewingMonth.month)
+            .toList();
 
     final bright = visibleSessions.where((s) => s.status == 'completed').length;
     final dead = visibleSessions.where((s) => s.status == 'failed').length;
-    final mins = visibleSessions.where((s) => s.status == 'completed')
+    final mins = visibleSessions
+        .where((s) => s.status == 'completed')
         .fold(0, (a, s) => a + s.durationMinutes);
 
     final canGoFwd = !_viewingAllTime &&
         (_viewingMonth.year < now.year ||
-            (_viewingMonth.year == now.year && _viewingMonth.month < now.month));
+            (_viewingMonth.year == now.year &&
+                _viewingMonth.month < now.month));
 
     return PopScope(
       canPop: !_isActive,
       child: Scaffold(
         backgroundColor: const Color(0xFF060914),
         body: Stack(children: [
-
           // ── 1) Sky background (ambient + scene) ──────────────────
           Positioned.fill(
             child: AnimatedBuilder(
@@ -310,28 +377,42 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
                       child: Row(children: [
                         IconButton(
                           padding: EdgeInsets.zero,
-                          icon: const Icon(Icons.chevron_left_rounded, color: Colors.white54),
+                          icon: const Icon(Icons.chevron_left_rounded,
+                              color: Colors.white54),
                           onPressed: () => setState(() {
                             _viewingAllTime = false;
-                            _viewingMonth = DateTime(_viewingMonth.year, _viewingMonth.month - 1);
+                            _viewingMonth = DateTime(
+                                _viewingMonth.year, _viewingMonth.month - 1);
                           }),
                         ),
                         Expanded(
                           child: GestureDetector(
                             onTap: () => setState(() {
                               _viewingAllTime = !_viewingAllTime;
-                              if (!_viewingAllTime) _viewingMonth = DateTime(now.year, now.month);
+                              if (!_viewingAllTime)
+                                _viewingMonth = DateTime(now.year, now.month);
                             }),
                             child: Column(children: [
                               Text(
-                                _viewingAllTime ? 'ALL TIME' : DateFormat('MMMM yyyy').format(_viewingMonth).toUpperCase(),
+                                _viewingAllTime
+                                    ? 'ALL TIME'
+                                    : DateFormat('MMMM yyyy')
+                                        .format(_viewingMonth)
+                                        .toUpperCase(),
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700,
-                                    fontSize: 12, letterSpacing: 1.5),
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                    letterSpacing: 1.5),
                               ),
                               Text(
-                                _viewingAllTime ? 'tap for this month' : 'tap for all time',
-                                style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 10),
+                                _viewingAllTime
+                                    ? 'tap for this month'
+                                    : 'tap for all time',
+                                style: TextStyle(
+                                    color: Colors.white.withOpacity(0.35),
+                                    fontSize: 10),
                               ),
                             ]),
                           ),
@@ -339,13 +420,18 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
                         IconButton(
                           padding: EdgeInsets.zero,
                           icon: Icon(Icons.chevron_right_rounded,
-                              color: canGoFwd ? Colors.white54 : Colors.transparent),
-                          onPressed: canGoFwd ? () => setState(() =>
-                              _viewingMonth = DateTime(_viewingMonth.year, _viewingMonth.month + 1)) : null,
+                              color: canGoFwd
+                                  ? Colors.white54
+                                  : Colors.transparent),
+                          onPressed: canGoFwd
+                              ? () => setState(() => _viewingMonth = DateTime(
+                                  _viewingMonth.year, _viewingMonth.month + 1))
+                              : null,
                         ),
                         IconButton(
                           padding: EdgeInsets.zero,
-                          icon: Icon(Icons.tune_rounded, color: Colors.white.withOpacity(0.35), size: 20),
+                          icon: Icon(Icons.tune_rounded,
+                              color: Colors.white.withOpacity(0.35), size: 20),
                           onPressed: _showResetMenu,
                         ),
                       ]),
@@ -354,37 +440,49 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
                     // ── Stats row
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        _statItem('$bright', 'earned'),
-                        _vDivider(),
-                        _statItem('$dead', 'faded'),
-                        _vDivider(),
-                        _statItem('${(mins / 60.0).toStringAsFixed(1)}h', 'focused'),
-                      ]),
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _statItem('$bright', 'earned'),
+                            _vDivider(),
+                            _statItem('$dead', 'faded'),
+                            _vDivider(),
+                            _statItem('${(mins / 60.0).toStringAsFixed(1)}h',
+                                'focused'),
+                          ]),
                     ),
 
                     // ── Star grid (scrollable, fills available space)
                     Expanded(
                       child: visibleSessions.isEmpty
                           ? Center(
-                        child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.nights_stay_outlined, color: Colors.white.withOpacity(0.15), size: 40),
-                          const SizedBox(height: 12),
-                          Text('Complete a session to earn your first star',
-                              style: TextStyle(color: Colors.white.withOpacity(0.25), fontSize: 13),
-                              textAlign: TextAlign.center),
-                        ]),
-                      )
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.nights_stay_outlined,
+                                        color: Colors.white.withOpacity(0.15),
+                                        size: 40),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                        'Complete a session to earn your first star',
+                                        style: TextStyle(
+                                            color:
+                                                Colors.white.withOpacity(0.25),
+                                            fontSize: 13),
+                                        textAlign: TextAlign.center),
+                                  ]),
+                            )
                           : Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        child: AnimatedBuilder(
-                          animation: _skyAnim,
-                          builder: (_, __) => _StarGrid(
-                            sessions: visibleSessions,
-                            t: _skyAnim.value,
-                          ),
-                        ),
-                      ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 8),
+                              child: AnimatedBuilder(
+                                animation: _skyAnim,
+                                builder: (_, __) => _StarGrid(
+                                  sessions: visibleSessions,
+                                  t: _skyAnim.value,
+                                ),
+                              ),
+                            ),
                     ),
 
                     // ── Duration wheel + Start button
@@ -406,11 +504,17 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
                               builder: (_, i) {
                                 final m = (i + 1) * 5;
                                 final sel = m == _selectedMinutes;
-                                return Center(child: Text('$m min', style: TextStyle(
-                                  fontWeight: sel ? FontWeight.w700 : FontWeight.w300,
-                                  fontSize: sel ? 24 : 16,
-                                  color: sel ? Colors.white : Colors.white24,
-                                )));
+                                return Center(
+                                    child: Text('$m min',
+                                        style: TextStyle(
+                                          fontWeight: sel
+                                              ? FontWeight.w700
+                                              : FontWeight.w300,
+                                          fontSize: sel ? 24 : 16,
+                                          color: sel
+                                              ? Colors.white
+                                              : Colors.white24,
+                                        )));
                               },
                             ),
                           ),
@@ -424,22 +528,32 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(24),
-                              boxShadow: [BoxShadow(
-                                  color: Colors.white.withOpacity(0.2), blurRadius: 16, spreadRadius: 1)],
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Colors.white.withOpacity(0.2),
+                                    blurRadius: 16,
+                                    spreadRadius: 1)
+                              ],
                             ),
                             alignment: Alignment.center,
-                            child: const Text('ENGAGE FOCUS', style: TextStyle(
-                              color: Colors.black, fontWeight: FontWeight.w800,
-                              fontSize: 12, letterSpacing: 1.5,
-                            )),
+                            child: const Text('ENGAGE FOCUS',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 12,
+                                  letterSpacing: 1.5,
+                                )),
                           ),
                         ),
                         const SizedBox(height: 8),
                         TextButton.icon(
                           onPressed: _injectDemoData,
-                          icon: Icon(Icons.auto_awesome, size: 12, color: Colors.white.withOpacity(0.2)),
+                          icon: Icon(Icons.auto_awesome,
+                              size: 12, color: Colors.white.withOpacity(0.2)),
                           label: Text('Generate Demo',
-                              style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 11)),
+                              style: TextStyle(
+                                  color: Colors.white.withOpacity(0.2),
+                                  fontSize: 11)),
                         ),
                       ]),
                     ),
@@ -450,17 +564,25 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
 
           // ── 3) Active timer overlay ────────────────────────────
           if (_isActive)
-            Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
               if (widget.taskName != null) ...[
-                Text('FOCUSING ON', style: TextStyle(
-                    color: Colors.white.withOpacity(0.4), fontSize: 10, letterSpacing: 2)),
+                Text('FOCUSING ON',
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.4),
+                        fontSize: 10,
+                        letterSpacing: 2)),
                 const SizedBox(height: 4),
-                Text(widget.taskName!.toUpperCase(), style: const TextStyle(
-                    color: Colors.white, fontSize: 14, letterSpacing: 1.2)),
+                Text(widget.taskName!.toUpperCase(),
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 14, letterSpacing: 1.2)),
                 const SizedBox(height: 24),
               ] else ...[
-                Text('FORMING YOUR STAR', style: TextStyle(
-                    color: Colors.white.withOpacity(0.35), fontSize: 11, letterSpacing: 2)),
+                Text('FORMING YOUR STAR',
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.35),
+                        fontSize: 11,
+                        letterSpacing: 2)),
                 const SizedBox(height: 24),
               ],
               SizedBox(
@@ -472,22 +594,26 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
                       value: 1 - _secondsRemaining / (_selectedMinutes * 60),
                       strokeWidth: 2,
                       backgroundColor: Colors.white10,
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(Colors.white),
                       strokeCap: StrokeCap.round,
                     ),
                   ),
-                  Text(_timerString, style: const TextStyle(
-                    color: Colors.white, fontSize: 52,
-                    fontWeight: FontWeight.w200,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                  )),
+                  Text(_timerString,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 52,
+                        fontWeight: FontWeight.w200,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      )),
                 ]),
               ),
               const SizedBox(height: 40),
               TextButton(
                 onPressed: _giveUp,
-                child: Text('Give Up', style: TextStyle(
-                    color: Colors.white.withOpacity(0.3), fontSize: 14)),
+                child: Text('Give Up',
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.3), fontSize: 14)),
               ),
             ])),
         ]),
@@ -496,12 +622,18 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
   }
 
   Widget _statItem(String value, String label) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 14),
-    child: Column(children: [
-      Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-      Text(label, style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 10)),
-    ]),
-  );
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Column(children: [
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18)),
+          Text(label,
+              style: TextStyle(
+                  color: Colors.white.withOpacity(0.45), fontSize: 10)),
+        ]),
+      );
 
   Widget _vDivider() => Container(width: 1, height: 22, color: Colors.white12);
 }
@@ -531,7 +663,7 @@ class _StarGrid extends StatelessWidget {
             child: CustomPaint(
               painter: _StarPainter(
                 t: t,
-                phase: (i * 0.37) % 1.0,  // stagger each star's flicker
+                phase: (i * 0.37) % 1.0, // stagger each star's flicker
                 completed: s.status == 'completed',
                 rating: s.rating,
               ),
@@ -547,8 +679,8 @@ class _StarGrid extends StatelessWidget {
 //  Single Star Painter — draws a 5-pointed star shape with glow
 // ─────────────────────────────────────────────────────────────────
 class _StarPainter extends CustomPainter {
-  final double t;      // global animation time 0..1
-  final double phase;  // per-star phase offset
+  final double t; // global animation time 0..1
+  final double phase; // per-star phase offset
   final bool completed;
   final int rating;
 
@@ -603,9 +735,11 @@ class _StarPainter extends CustomPainter {
       final starPath = _starPath(cx, cy, outerR, innerR);
 
       // Glow halo
-      canvas.drawPath(starPath, Paint()
-        ..color = Colors.white.withOpacity(0.08 * flicker)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8 * flicker));
+      canvas.drawPath(
+          starPath,
+          Paint()
+            ..color = Colors.white.withOpacity(0.08 * flicker)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8 * flicker));
 
       // Mid glow
       canvas.drawPath(
@@ -614,8 +748,8 @@ class _StarPainter extends CustomPainter {
       );
 
       // Main star body
-      canvas.drawPath(starPath, Paint()
-        ..color = Colors.white.withOpacity(0.7 + 0.3 * flicker));
+      canvas.drawPath(starPath,
+          Paint()..color = Colors.white.withOpacity(0.7 + 0.3 * flicker));
 
       // Bright core highlight
       canvas.drawPath(
@@ -629,19 +763,23 @@ class _StarPainter extends CustomPainter {
       final starPath = _starPath(cx, cy, outerR, innerR);
 
       // Soft red glow
-      canvas.drawPath(starPath, Paint()
-        ..color = const Color(0xFFFF4444).withOpacity(0.08)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
+      canvas.drawPath(
+          starPath,
+          Paint()
+            ..color = const Color(0xFFFF4444).withOpacity(0.08)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
 
       // Faded red star outline
-      canvas.drawPath(starPath, Paint()
-        ..color = const Color(0xFFFF6666).withOpacity(0.30)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2);
+      canvas.drawPath(
+          starPath,
+          Paint()
+            ..color = const Color(0xFFFF6666).withOpacity(0.30)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2);
 
       // Very dim fill
-      canvas.drawPath(starPath, Paint()
-        ..color = const Color(0xFF882222).withOpacity(0.18));
+      canvas.drawPath(
+          starPath, Paint()..color = const Color(0xFF882222).withOpacity(0.18));
     }
   }
 
@@ -672,27 +810,29 @@ class _BackgroundPainter extends CustomPainter {
     // Sky gradient
     canvas.drawRect(
       Rect.fromLTWH(0, 0, w, h),
-      Paint()..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color(0xFF040610),
-          Color(0xFF0A0F22),
-          Color(0xFF12193A),
-          Color(0xFF1A2550),
-        ],
-        stops: [0.0, 0.35, 0.65, 1.0],
-      ).createShader(Rect.fromLTWH(0, 0, w, h)),
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF040610),
+            Color(0xFF0A0F22),
+            Color(0xFF12193A),
+            Color(0xFF1A2550),
+          ],
+          stops: [0.0, 0.35, 0.65, 1.0],
+        ).createShader(Rect.fromLTWH(0, 0, w, h)),
     );
 
     // Subtle Milky Way smear
     canvas.drawRect(
       Rect.fromLTWH(0, 0, w, h * 0.7),
-      Paint()..shader = RadialGradient(
-        center: const Alignment(0.1, -0.2),
-        radius: 1.1,
-        colors: [Colors.indigo.withOpacity(0.06), Colors.transparent],
-      ).createShader(Rect.fromLTWH(0, 0, w, h * 0.7)),
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0.1, -0.2),
+          radius: 1.1,
+          colors: [Colors.blue.withOpacity(0.06), Colors.transparent],
+        ).createShader(Rect.fromLTWH(0, 0, w, h * 0.7)),
     );
 
     // Ambient twinkling background stars
@@ -713,8 +853,10 @@ class _BackgroundPainter extends CustomPainter {
       final cy = s.y * h;
 
       final tw1 = 0.5 + 0.5 * math.sin(t * tau * s.speed + s.phase);
-      final tw2 = 0.5 + 0.5 * math.sin(t * tau * s.speed * 1.37 + s.phase * 2.1);
-      final brightness = 0.20 + 0.80 * (0.55 * tw1 + 0.45 * tw2).clamp(0.0, 1.0);
+      final tw2 =
+          0.5 + 0.5 * math.sin(t * tau * s.speed * 1.37 + s.phase * 2.1);
+      final brightness =
+          0.20 + 0.80 * (0.55 * tw1 + 0.45 * tw2).clamp(0.0, 1.0);
       final tint = tints[idx % tints.length];
 
       if (s.radius > 0.8) {
@@ -758,10 +900,12 @@ class _BackgroundPainter extends CustomPainter {
       ..cubicTo(w * 0.52, h * 0.73, w * 0.60, h * 0.755, w * 0.72, h * 0.745)
       ..cubicTo(w * 0.82, h * 0.735, w * 0.91, h * 0.75, w, h * 0.76);
 
-    canvas.drawPath(edgePath, Paint()
-      ..color = Colors.white.withOpacity(0.035)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0);
+    canvas.drawPath(
+        edgePath,
+        Paint()
+          ..color = Colors.white.withOpacity(0.035)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.0);
 
     // Boy + telescope silhouette
     _drawObserver(canvas, w, h);
@@ -771,8 +915,13 @@ class _BackgroundPainter extends CustomPainter {
     final bx = w * 0.26;
     final by = h * 0.718;
     final dark = const Color(0xFF060A18);
-    final fill = Paint()..color = dark..style = PaintingStyle.fill;
-    final stroke = Paint()..color = dark..strokeWidth = 2.2..style = PaintingStyle.stroke;
+    final fill = Paint()
+      ..color = dark
+      ..style = PaintingStyle.fill;
+    final stroke = Paint()
+      ..color = dark
+      ..strokeWidth = 2.2
+      ..style = PaintingStyle.stroke;
 
     // Tripod legs
     canvas.drawLine(Offset(bx - 6, by - 26), Offset(bx - 18, by), stroke);
@@ -816,16 +965,24 @@ class _BackgroundPainter extends CustomPainter {
     canvas.drawPath(arm, fill);
 
     // Head
-    canvas.drawOval(Rect.fromCenter(center: Offset(bx - 1, by - 40), width: 11, height: 13), fill);
+    canvas.drawOval(
+        Rect.fromCenter(center: Offset(bx - 1, by - 40), width: 11, height: 13),
+        fill);
 
     // Hair
     final hair = Path()
       ..moveTo(bx - 5, by - 46)
       ..cubicTo(bx - 4, by - 50, bx + 2, by - 50, bx + 3, by - 46);
-    canvas.drawPath(hair, Paint()..color = dark..strokeWidth = 2..style = PaintingStyle.stroke);
+    canvas.drawPath(
+        hair,
+        Paint()
+          ..color = dark
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke);
 
     // Tiny bright eye
-    canvas.drawCircle(Offset(bx - 3, by - 40), 1, Paint()..color = Colors.white.withOpacity(0.5));
+    canvas.drawCircle(Offset(bx - 3, by - 40), 1,
+        Paint()..color = Colors.white.withOpacity(0.5));
   }
 
   @override

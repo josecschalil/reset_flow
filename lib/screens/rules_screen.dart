@@ -11,7 +11,7 @@ class RulesScreen extends ConsumerStatefulWidget {
 }
 
 class _RulesScreenState extends ConsumerState<RulesScreen> {
-  static const _brand = Color(0xFF5C35C2);
+  static const _brand = Color(0xFF1E3A5F);
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +39,7 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                                   .headlineLarge
                                   ?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF1A1A2E))),
+                                      color: const Color(0xFF14202E))),
                           const SizedBox(height: 4),
                           Text('Pre-planned responses',
                               style: TextStyle(
@@ -51,19 +51,19 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                     ),
                     const SizedBox(width: 12),
                     InkWell(
-                        
-                        onTap: () => _showAddEditDialog(context, null),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.add, size: 25, color: Colors.grey),
-                              SizedBox(width: 4),
-                            ],
-                          ),
+                      onTap: () => _showAddEditDialog(context, null),
+                      child: const Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add, size: 25, color: Colors.grey),
+                            SizedBox(width: 4),
+                          ],
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),
@@ -91,7 +91,7 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                             width: 64,
                             height: 64,
                             decoration: const BoxDecoration(
-                              color: Color(0xFFEDE9FB),
+                              color: Color(0xFFEEF2F7),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.shield_outlined,
@@ -100,8 +100,7 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                           const SizedBox(height: 16),
                           const Text('No Decisions Yet',
                               style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16)),
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
                           const SizedBox(height: 8),
                           Text(
                             'Pre-plan your responses to temptations\nand stay in control.',
@@ -165,7 +164,7 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEDE9FB),
+                    color: const Color(0xFFEEF2F7),
                     borderRadius: BorderRadius.circular(11),
                   ),
                   child: const Icon(Icons.help_outline_rounded,
@@ -181,7 +180,7 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: Color(0xFF1A1A2E),
+                          color: Color(0xFF14202E),
                           height: 1.3,
                         ),
                       ),
@@ -198,7 +197,8 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                 ),
                 // 3-dot menu
                 PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade400),
+                  icon: Icon(Icons.more_vert,
+                      size: 20, color: Colors.grey.shade400),
                   padding: EdgeInsets.zero,
                   onSelected: (value) {
                     if (value == 'edit') {
@@ -282,7 +282,6 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                 ),
               );
             }),
-
           ],
         ),
       ),
@@ -292,8 +291,7 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
   void _showAddEditDialog(BuildContext context, AppRule? existingRule) {
     final titleController =
         TextEditingController(text: existingRule?.title ?? '');
-    List<String> solutions =
-        List.from(existingRule?.solutions ?? ['']);
+    List<String> solutions = List.from(existingRule?.solutions ?? ['']);
 
     showDialog(
       context: context,
@@ -323,19 +321,15 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                               child: TextFormField(
                                 initialValue: solutions[index],
                                 decoration: InputDecoration(
-                                    labelText:
-                                        'Solution point ${index + 1}'),
-                                onChanged: (val) =>
-                                    solutions[index] = val,
+                                    labelText: 'Solution point ${index + 1}'),
+                                onChanged: (val) => solutions[index] = val,
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(
-                                  Icons.remove_circle_outline),
+                              icon: const Icon(Icons.remove_circle_outline),
                               onPressed: () {
                                 if (solutions.length > 1) {
-                                  setState(
-                                      () => solutions.removeAt(index));
+                                  setState(() => solutions.removeAt(index));
                                 }
                               },
                             ),
@@ -344,8 +338,7 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
                       );
                     }),
                     TextButton.icon(
-                      onPressed: () =>
-                          setState(() => solutions.add('')),
+                      onPressed: () => setState(() => solutions.add('')),
                       icon: const Icon(Icons.add),
                       label: const Text('Add Point'),
                     ),
@@ -360,21 +353,21 @@ class _RulesScreenState extends ConsumerState<RulesScreen> {
               FilledButton(
                 onPressed: () {
                   if (titleController.text.trim().isEmpty) return;
-                  final finalSolutions = solutions
-                      .where((s) => s.trim().isNotEmpty)
-                      .toList();
+                  final finalSolutions =
+                      solutions.where((s) => s.trim().isNotEmpty).toList();
                   if (finalSolutions.isEmpty) return;
 
                   if (existingRule == null) {
-                    ref.read(ruleProvider.notifier).addRule(
-                        titleController.text.trim(), finalSolutions);
+                    ref
+                        .read(ruleProvider.notifier)
+                        .addRule(titleController.text.trim(), finalSolutions);
                   } else {
                     ref.read(ruleProvider.notifier).updateRule(AppRule(
-                      id: existingRule.id,
-                      title: titleController.text.trim(),
-                      solutions: finalSolutions,
-                      createdAt: existingRule.createdAt,
-                    ));
+                          id: existingRule.id,
+                          title: titleController.text.trim(),
+                          solutions: finalSolutions,
+                          createdAt: existingRule.createdAt,
+                        ));
                   }
                   Navigator.pop(context);
                 },

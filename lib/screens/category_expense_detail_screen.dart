@@ -25,6 +25,12 @@ class CategoryExpenseDetailScreen extends ConsumerWidget {
 
     double total = expenses.fold(0, (sum, e) => sum + e.amount);
 
+    final Map<String, double> monthTotals = {};
+    for (final e in expenses) {
+      final key = '${e.date.year}-${e.date.month}';
+      monthTotals[key] = (monthTotals[key] ?? 0.0) + e.amount;
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(category.name,
@@ -135,18 +141,19 @@ class CategoryExpenseDetailScreen extends ConsumerWidget {
 
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-          // ── Section label
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-              child: Text('TRANSACTIONS',
-                  style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                      color: cs.onSurface.withOpacity(0.45))),
+          // ── Section label (when empty)
+          if (expenses.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                child: Text('TRANSACTIONS',
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                        color: cs.onSurface.withOpacity(0.45))),
+              ),
             ),
-          ),
 
           // ── Expense list
           if (expenses.isEmpty)
@@ -208,9 +215,26 @@ class CategoryExpenseDetailScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => _buildExpenseTile(
-                      context, expenses[index], notifier, cs,
-                      categoryColor),
+                  (context, index) {
+                    final expense = expenses[index];
+                    final isFirstInMonth = index == 0 ||
+                        expense.date.year != expenses[index - 1].date.year ||
+                        expense.date.month != expenses[index - 1].date.month;
+                    final monthKey =
+                        '${expense.date.year}-${expense.date.month}';
+                    final monthTotal = monthTotals[monthKey] ?? 0.0;
+
+                    return _buildExpenseTile(
+                      context,
+                      expense,
+                      notifier,
+                      cs,
+                      categoryColor,
+                      showMonthHeader: isFirstInMonth,
+                      monthTotal: monthTotal,
+                      isFirst: index == 0,
+                    );
+                  },
                   childCount: expenses.length,
                 ),
               ),
@@ -227,9 +251,12 @@ class CategoryExpenseDetailScreen extends ConsumerWidget {
     Expense expense,
     ExpenseNotifier notifier,
     ColorScheme cs,
-    Color categoryColor,
-  ) {
-    return Container(
+    Color categoryColor, {
+    bool showMonthHeader = false,
+    double monthTotal = 0.0,
+    bool isFirst = false,
+  }) {
+    final card = Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: cs.surface,
@@ -311,6 +338,44 @@ class CategoryExpenseDetailScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+
+    if (!showMonthHeader) return card;
+
+    final monthLabel =
+        DateFormat('MMMM yyyy').format(expense.date).toUpperCase();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(4, isFirst ? 0 : 16, 4, 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                monthLabel,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                  color: cs.onSurface.withValues(alpha: 0.45),
+                ),
+              ),
+              Text(
+                '₹${monthTotal.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: cs.onSurface.withValues(alpha: 0.55),
+                ),
+              ),
+            ],
+          ),
+        ),
+        card,
+      ],
     );
   }
 

@@ -253,68 +253,51 @@ class GoalNotifier extends StateNotifier<GoalState> {
   }
 
   Future<void> reorderGoals(int oldIndex, int newIndex) async {
-    final currentLogs = List<DailyLog>.from(state.todayLogs);
-    if (oldIndex >= currentLogs.length) return;
+    final reorderedLogs = List<DailyLog>.from(state.todayLogs);
+    if (oldIndex < 0 || oldIndex >= reorderedLogs.length) return;
 
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
-    if (newIndex >= currentLogs.length) newIndex = currentLogs.length - 1;
-    if (newIndex < 0) newIndex = 0;
+    // SliverReorderableList reports the destination index before removing the
+    // dragged item, so account for that when dragging downward.
+    if (oldIndex < newIndex) newIndex -= 1;
+    newIndex = newIndex.clamp(0, reorderedLogs.length - 1).toInt();
+    if (oldIndex == newIndex) return;
 
-    // 1. Update todayLogs IMMEDIATELY for UI stability
-    final movedLog = currentLogs.removeAt(oldIndex);
-    currentLogs.insert(newIndex, movedLog);
-    state = state.copyWith(todayLogs: currentLogs);
-
-    // 2. Perform global reordering of the goals list
-    final targetGoalId = movedLog.goalId;
-    final destinationGoalId = currentLogs[newIndex == oldIndex ? (newIndex == 0 ? 0 : newIndex) : newIndex].goalId; // Just to find insertion point
+    final movedLog = reorderedLogs.removeAt(oldIndex);
+    reorderedLogs.insert(newIndex, movedLog);
 
     final goals = List<Goal>.from(state.goals);
-    final absOldIndex = goals.indexWhere((g) => g.id == targetGoalId);
-    
-    // We want to insert it at its new relative position in the global list
-    // Find the goal that is currently at the newIndex in our visible list
-    final neighborGoalId = currentLogs[newIndex].id == movedLog.id 
-        ? (newIndex > 0 ? currentLogs[newIndex-1].goalId : (newIndex < currentLogs.length - 1 ? currentLogs[newIndex+1].goalId : null))
-        : currentLogs[newIndex].goalId;
+    final oldGoalIndex = goals.indexWhere((goal) => goal.id == movedLog.goalId);
+    if (oldGoalIndex == -1) return;
 
-    if (absOldIndex == -1) return;
+    final movedGoal = goals.removeAt(oldGoalIndex);
+    final movingUp = newIndex < oldIndex;
+    final anchorGoalId = movingUp
+        ? reorderedLogs[newIndex + 1].goalId
+        : reorderedLogs[newIndex - 1].goalId;
+    var goalIndex = goals.indexWhere((goal) => goal.id == anchorGoalId);
+    if (!movingUp) goalIndex += 1;
+    goals.insert(goalIndex.clamp(0, goals.length).toInt(), movedGoal);
 
-    final item = goals.removeAt(absOldIndex);
-    
-    // Determine new absolute index
-    int absNewIndex;
-    if (neighborGoalId == null) {
-      absNewIndex = 0;
-    } else {
-      absNewIndex = goals.indexWhere((g) => g.id == neighborGoalId);
-      // If we moved it 'after' the neighbor
-      if (newIndex > oldIndex) absNewIndex += 1; 
-      if (absNewIndex < 0) absNewIndex = 0;
-      if (absNewIndex > goals.length) absNewIndex = goals.length;
+    final orderedGoals = <Goal>[];
+    for (var index = 0; index < goals.length; index++) {
+      final goal = goals[index];
+      orderedGoals.add(Goal(
+        id: goal.id,
+        title: goal.title,
+        isActionBased: goal.isActionBased,
+        activeDays: goal.activeDays,
+        createdAt: goal.createdAt,
+        orderIndex: index,
+        isOneTime: goal.isOneTime,
+      ));
     }
 
-    goals.insert(absNewIndex, item);
+    // Keep both lists in sync immediately; reloading here can overwrite this
+    // order with an earlier database write while a reorder is being persisted.
+    state = state.copyWith(goals: orderedGoals, todayLogs: reorderedLogs);
 
-    // Update global state
-    state = state.copyWith(goals: goals);
-
-    // 3. Persist to DB
-    for (int i = 0; i < goals.length; i++) {
-        final updatedGoal = Goal(
-          id: goals[i].id,
-          title: goals[i].title,
-          isActionBased: goals[i].isActionBased,
-          activeDays: goals[i].activeDays,
-          createdAt: goals[i].createdAt,
-          orderIndex: i,
-        );
-        await dbHelper.updateGoal(updatedGoal);
+    for (final goal in orderedGoals) {
+      await dbHelper.updateGoal(goal);
     }
-    
-    // 4. Final sync
-    await loadData();
   }
 }

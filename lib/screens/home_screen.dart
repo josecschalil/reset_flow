@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:reset_flow/utils/quotes.dart';
 import 'package:reset_flow/widgets/momentum_roulette.dart';
 import 'package:reset_flow/widgets/analytics_section.dart';
+import 'package:reset_flow/screens/quote_screen.dart';
 import 'dart:math' as math;
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -37,8 +38,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         child: goalState.isLoading
             ? const Center(child: CircularProgressIndicator())
-            : CustomScrollView(
-                slivers: [
+            : GestureDetector(
+                onHorizontalDragEnd: (details) {
+                  if (details.primaryVelocity != null && details.primaryVelocity! > 300) {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) => const QuoteScreen(),
+                        opaque: true, // MUST be true to prevent background bleed/flickering
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          const begin = Offset(-1.0, 0.0);
+                          const end = Offset.zero;
+                          const curve = Curves.easeOutCubic;
+                          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                          return SlideTransition(position: animation.drive(tween), child: child);
+                        },
+                        transitionDuration: const Duration(milliseconds: 300),
+                        reverseTransitionDuration: const Duration(milliseconds: 300),
+                      ),
+                    );
+                  }
+                },
+                child: CustomScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  slivers: [
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                     sliver: SliverList(
@@ -65,6 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ],
               ),
+            ),
       ),
     );
   }

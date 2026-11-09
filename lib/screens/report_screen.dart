@@ -17,7 +17,7 @@ class ReportScreen extends ConsumerStatefulWidget {
 }
 
 class _ReportScreenState extends ConsumerState<ReportScreen> {
-  static const _brand = Color(0xFF5C35C2);
+  static const _brand = Color(0xFF1E3A5F);
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +46,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                                         .headlineLarge
                                         ?.copyWith(
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF1A1A2E))),
+                                            color: const Color(0xFF14202E))),
                                 const SizedBox(height: 4),
                                 Text(
                                   DateFormat('EEEE, MMM d')
@@ -67,11 +67,13 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                                   MaterialPageRoute(
                                       builder: (_) => const AddGoalScreen())),
                               child: const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 8),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.add, size: 25, color: Colors.grey),
+                                    Icon(Icons.add,
+                                        size: 25, color: Colors.grey),
                                   ],
                                 ),
                               ),
@@ -129,10 +131,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   }
 
   Widget _buildSummaryBar(GoalState state) {
-    int done =
-        state.todayLogs.where((l) => l.status == 'completed').length;
-    int failed =
-        state.todayLogs.where((l) => l.status == 'failed').length;
+    int done = state.todayLogs.where((l) => l.status == 'completed').length;
+    int failed = state.todayLogs.where((l) => l.status == 'failed').length;
     int pending = state.todayLogs.length - done - failed;
 
     return Container(
@@ -154,8 +154,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     );
   }
 
-  Widget _divider() => Container(
-      width: 1, height: 32, color: Colors.grey.shade200);
+  Widget _divider() =>
+      Container(width: 1, height: 32, color: Colors.grey.shade200);
 
   Widget _statCol(String value, String label, Color color) {
     return Expanded(
@@ -163,9 +163,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         children: [
           Text(value,
               style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: color)),
+                  fontSize: 26, fontWeight: FontWeight.bold, color: color)),
           const SizedBox(height: 2),
           Text(label,
               style: TextStyle(
@@ -192,16 +190,14 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: const Color(0xFFEDE9FB),
+              color: const Color(0xFFEEF2F7),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome,
-                color: _brand, size: 32),
+            child: const Icon(Icons.auto_awesome, color: _brand, size: 32),
           ),
           const SizedBox(height: 16),
           const Text('No Goals Yet',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 8),
           Text(
             'Tap New Goal to get started',
@@ -218,8 +214,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
       onReorder: (oldIndex, newIndex) {
         ref.read(goalProvider.notifier).reorderGoals(oldIndex, newIndex);
       },
-      proxyDecorator:
-          (Widget child, int index, Animation<double> animation) {
+      proxyDecorator: (Widget child, int index, Animation<double> animation) {
         return AnimatedBuilder(
           animation: animation,
           builder: (BuildContext context, Widget? child) {
@@ -273,7 +268,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
           HapticFeedback.lightImpact();
-          Navigator.push(context,
+          Navigator.push(
+              context,
               MaterialPageRoute(
                   builder: (_) => AddGoalScreen(goalToEdit: goal)));
           return false;
@@ -282,8 +278,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         }
       },
       background: _swipeBg(Icons.edit, _brand, Alignment.centerLeft),
-      secondaryBackground: _swipeBg(
-          Icons.delete, Colors.red.shade600, Alignment.centerRight),
+      secondaryBackground:
+          _swipeBg(Icons.delete, Colors.red.shade600, Alignment.centerRight),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -322,8 +318,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     return Row(
       children: [
         // Drag handle
-        Icon(Icons.drag_indicator,
-            color: Colors.grey.shade300, size: 20),
+        Icon(Icons.drag_indicator, color: Colors.grey.shade300, size: 20),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -343,9 +338,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                     fontSize: 15,
                     color: isCompleted
                         ? Colors.grey.shade400
-                        : const Color(0xFF1A1A2E),
-                    decoration:
-                        isCompleted ? TextDecoration.lineThrough : null,
+                        : const Color(0xFF14202E),
+                    decoration: isCompleted ? TextDecoration.lineThrough : null,
                     decorationColor: Colors.grey.shade400,
                   )),
             ],
@@ -385,15 +379,13 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
   Widget _buildAvoidanceContent(
       Goal goal, DailyLog log, bool isFailed, bool isPending) {
-    final progress =
-        ref.read(goalProvider.notifier).getAvoidanceProgress();
+    final progress = ref.read(goalProvider.notifier).getAvoidanceProgress();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(Icons.drag_indicator,
-                color: Colors.grey.shade300, size: 20),
+            Icon(Icons.drag_indicator, color: Colors.grey.shade300, size: 20),
             const SizedBox(width: 10),
             Expanded(
               child: Row(
@@ -418,9 +410,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                     fontSize: 15,
                     color: isFailed
                         ? Colors.grey.shade400
-                        : const Color(0xFF1A1A2E),
-                    decoration:
-                        isFailed ? TextDecoration.lineThrough : null,
+                        : const Color(0xFF14202E),
+                    decoration: isFailed ? TextDecoration.lineThrough : null,
                     decorationColor: Colors.grey.shade400,
                   )),
               if (isFailed)
@@ -452,9 +443,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: isFailed
-                            ? Colors.red.shade600
-                            : _brand),
+                        color: isFailed ? Colors.red.shade600 : _brand),
                   ),
                 ],
               ),
@@ -483,8 +472,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                                 horizontal: 16, vertical: 6)),
                         child: const Text('Reset',
                             style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14)),
+                                fontWeight: FontWeight.bold, fontSize: 14)),
                       )
                     : OutlinedButton(
                         onPressed: () => ref
@@ -492,13 +480,11 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                             .markAvoidanceFailed(log.id),
                         style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red.shade600,
-                            side: BorderSide(
-                                color: Colors.red.shade300),
+                            side: BorderSide(color: Colors.red.shade300),
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 6),
                             shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(20))),
+                                borderRadius: BorderRadius.circular(20))),
                         child: const Text('Mark Fail',
                             style: TextStyle(fontSize: 13)),
                       ),
@@ -529,14 +515,11 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   Widget _streakPill(Goal goal) {
     if (goal.isOneTime) return const SizedBox.shrink();
     final state = ref.read(goalProvider);
-    final logs =
-        state.allLogs.where((l) => l.goalId == goal.id).toList();
-    final streak =
-        StreakCalculator.calculateCurrentStreak(goal, logs);
+    final logs = state.allLogs.where((l) => l.goalId == goal.id).toList();
+    final streak = StreakCalculator.calculateCurrentStreak(goal, logs);
     if (streak == 0) return const SizedBox.shrink();
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
         color: Colors.orange.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
@@ -559,8 +542,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
   Widget _goalMenu(Goal goal) {
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert,
-          size: 20, color: Colors.grey.shade400),
+      icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade400),
       onSelected: (value) async {
         if (value == 'edit') {
           Navigator.push(
@@ -582,11 +564,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         PopupMenuItem(
             value: 'delete',
             child: Row(children: [
-              Icon(Icons.delete_outline,
-                  color: Colors.red.shade600, size: 18),
+              Icon(Icons.delete_outline, color: Colors.red.shade600, size: 18),
               const SizedBox(width: 8),
-              Text('Delete',
-                  style: TextStyle(color: Colors.red.shade600))
+              Text('Delete', style: TextStyle(color: Colors.red.shade600))
             ])),
       ],
     );
@@ -597,15 +577,13 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Goal?'),
-        content:
-            Text('Delete "${goal.title}" and all its history?'),
+        content: Text('Delete "${goal.title}" and all its history?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancel')),
           FilledButton(
-            style: FilledButton.styleFrom(
-                backgroundColor: Colors.red.shade600),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade600),
             onPressed: () {
               ref.read(goalProvider.notifier).deleteGoal(goal.id);
               Navigator.pop(context, true);

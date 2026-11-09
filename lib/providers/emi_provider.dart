@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:reset_flow/models/emi_model.dart';
-import 'package:reset_flow/models/financial_transaction.dart';
 import 'package:reset_flow/services/database_helper.dart';
 import 'package:reset_flow/providers/monetary_provider.dart';
 
@@ -100,6 +99,82 @@ class EMINotifier extends StateNotifier<EMIState> {
     _ref.read(monetaryProvider.notifier).loadTransactions(); // To reflect in net balance
   }
 
+  Future<void> updateEMIPlan({
+    required String planId,
+    required String provider,
+    required String title,
+    required double totalAmount,
+    required int installmentCount,
+    required DateTime startDate,
+    required String type,
+    List<double>? customAmounts,
+  }) async {
+    final existingPlan = state.plans.firstWhere((p) => p.id == planId);
+    final updatedPlan = EMIPlan(
+      id: planId,
+      provider: provider,
+      title: title,
+      totalAmount: totalAmount,
+      installmentCount: installmentCount,
+      startDate: startDate,
+      status: existingPlan.status,
+      type: type,
+    );
+    await DatabaseHelper.instance.updateEMIPlan(updatedPlan.toMap());
+
+    // Calculate installment amounts
+    final amounts = <double>[];
+    if (customAmounts != null && customAmounts.length == installmentCount) {
+      amounts.addAll(customAmounts);
+    } else {
+      double baseAmount = (totalAmount / installmentCount).floorToDouble();
+      double remainder = totalAmount - (baseAmount * installmentCount);
+      for (int i = 0; i < installmentCount; i++) {
+        amounts.add(baseAmount + (i == 0 ? remainder : 0));
+      }
+    }
+
+    final currentInstallments =
+        List<EMIInstallment>.from(state.installments[planId] ?? []);
+    currentInstallments.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+
+    for (int i = 0; i < installmentCount; i++) {
+      final dueDate =
+          DateTime(startDate.year, startDate.month + i, startDate.day);
+      final amount = amounts[i];
+      if (i < currentInstallments.length) {
+        final existingInst = currentInstallments[i];
+        final updatedInst = EMIInstallment(
+          id: existingInst.id,
+          planId: planId,
+          amount: amount,
+          dueDate: dueDate,
+          isPaid: existingInst.isPaid,
+          transactionId: existingInst.transactionId,
+        );
+        await DatabaseHelper.instance.updateEMIInstallment(updatedInst.toMap());
+      } else {
+        final newInst = EMIInstallment(
+          planId: planId,
+          amount: amount,
+          dueDate: dueDate,
+          isPaid: false,
+        );
+        await DatabaseHelper.instance.insertEMIInstallment(newInst.toMap());
+      }
+    }
+
+    if (installmentCount < currentInstallments.length) {
+      for (int i = installmentCount; i < currentInstallments.length; i++) {
+        await DatabaseHelper.instance
+            .deleteEMIInstallment(currentInstallments[i].id);
+      }
+    }
+
+    await loadEMIs();
+    _ref.read(monetaryProvider.notifier).loadTransactions();
+  }
+
   Future<void> payInstallment(EMIInstallment installment, EMIPlan plan) async {
     if (installment.isPaid) return;
 
@@ -142,8 +217,6 @@ class EMINotifier extends StateNotifier<EMIState> {
     
     if (unpaid.isEmpty) return;
 
-    final plan = state.plans.firstWhere((p) => p.id == planId);
-
     // We simply mark all as paid without creating individual transactions
     // because preclosure usually involves a single bulk settlement which 
     // the user might track manually or we can add one big closure transaction.
@@ -183,6 +256,38 @@ class EMINotifier extends StateNotifier<EMIState> {
     );
 
     await DatabaseHelper.instance.updateEMIInstallment(updated.toMap());
+    await loadEMIs();
+  }
+
+  Future<void> updatePlanStartDate(EMIPlan plan, DateTime startDate) async {
+    final updatedPlan = EMIPlan(
+      id: plan.id,
+      provider: plan.provider,
+      title: plan.title,
+      totalAmount: plan.totalAmount,
+      installmentCount: plan.installmentCount,
+      startDate: startDate,
+      status: plan.status,
+      type: plan.type,
+    );
+    await DatabaseHelper.instance.updateEMIPlan(updatedPlan.toMap());
+
+    final installments = state.installments[plan.id] ?? [];
+    for (var index = 0; index < installments.length; index++) {
+      final installment = installments[index];
+      final updatedInstallment = EMIInstallment(
+        id: installment.id,
+        planId: installment.planId,
+        amount: installment.amount,
+        dueDate: DateTime(startDate.year, startDate.month + index, startDate.day),
+        isPaid: installment.isPaid,
+        transactionId: installment.transactionId,
+      );
+      await DatabaseHelper.instance.updateEMIInstallment(
+        updatedInstallment.toMap(),
+      );
+    }
+
     await loadEMIs();
   }
 
